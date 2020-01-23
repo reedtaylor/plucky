@@ -1,222 +1,212 @@
 #include <Arduino.h>
 
-// config: ////////////////////////////////////////////////////////////
+/*************************  General Config ***********************/
 
-/*************************  General Config *******************************/
-
-#define bufferSize 2048
+const uint bufferSize = 2048;
 #define DEBUG
 
-// Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "plucky_0.01"
-
-
 /*************************  UART Config *******************************/
-
-#define UART_BAUD 115200
-#define SERIAL_PARAM SERIAL_8N1
-
-#define SERIAL_DE_UART_NUM UART_NUM_1
-#define SERIAL_DE_RX_PIN 16
-#define SERIAL_DE_TX_PIN 17
-
-#define SERIAL_BLE_UART_NUM UART_NUM_2
-#define SERIAL_BLE_RX_PIN 13
-#define SERIAL_BLE_TX_PIN 27
-#define SERIAL_BLE_CTS_PIN 12
-#define SERIAL_BLE_RTS_PIN 33
-
-
-/*************************  WiFi & TCP Config *******************************/
-#define WIFI
-
-/***
-// -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
-const char thingName[] = "espresso_plucky";
-
-// -- Initial password to connect to the Thing, when it creates an own Access Point.
-const char wifiInitialApPassword[] = "decentDE1";
-****/
-
-
-
-#define MAX_TCP_CLIENTS 10
-#define TCP_PORT 9090
-
-/// end config ///////////////////////////////////////////////////////////
-
-// Enumerate the hardware serial devices
 #include "driver/uart.h"
-HardwareSerial & Serial_USB = Serial;
+const int UART_BAUD = 115200;
+const long SERIAL_PARAM = SERIAL_8N1;
+
+const uart_port_t SERIAL_DE_UART_NUM = UART_NUM_1;
+const uint SERIAL_DE_RX_PIN = 16;
+const uint SERIAL_DE_TX_PIN = 17;
+
+const uart_port_t SERIAL_BLE_UART_NUM = UART_NUM_2;
+const uint SERIAL_BLE_RX_PIN = 13;
+const uint SERIAL_BLE_TX_PIN = 27;
+const uint SERIAL_BLE_CTS_PIN = 12;
+const uint SERIAL_BLE_RTS_PIN = 33;
+
+/****************  WiFi & WebServer Config *************************/
+#define WEBSERVER
+
+/***^^^^^^^^^^^^^^^^^^^^^  END OF CONFIGURATIONS ^^^^^^^^^^^^^^^^^^^^^***/
+
+/***** SERIAL INSTANTIATION *****/
+HardwareSerial &Serial_USB = Serial;
 HardwareSerial Serial_DE(SERIAL_DE_UART_NUM);
 HardwareSerial Serial_BLE(SERIAL_BLE_UART_NUM);
 
-#ifdef WIFI
+/***** WEBSERVER INSTANTIATION *****/
+#ifdef WEBSERVER
 
-/***
-// Instantiate the web configuration interface
-#include <IotWebConf.h>
-DNSServer dnsServer;
-WebServer webServer(80);
-HTTPUpdateServer httpUpdater;
+#include "AsyncTCP.h"
+#include "ESPAsyncWebServer.h"
+#include "Update.h"
 
-IotWebConf iotWebConf(thingName, &dnsServer, &webServer, wifiInitialApPassword);
-***/
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");            // access at ws://[esp ip]/ws
+AsyncEventSource events("/events");  // event source (Server-Sent events)
 
-// Instantiate the TCP sockets for talking to the machine
-#include <WiFi.h>
-WiFiServer TCPServer(TCP_PORT);
-WiFiClient TCPClient[MAX_TCP_CLIENTS];
+const char *ssid = "myssid";
+const char *password = "wpa2passwd";
+const char *http_username = "admin";
+const char *http_password = "admin";
 
-#endif // ifdef WIFI
+// flag to use from web update to reboot the ESP
+bool shouldReboot = false;
 
-bool wifiReady = false;
+void onRequest(AsyncWebServerRequest *request) {
+  // Handle Unknown Request
+  request->send(404);
+}
+
+void onBody(AsyncWebServerRequest *request, uint8_t *data, size_t len,
+            size_t index, size_t total) {
+  // Handle body
+}
+
+void onUpload(AsyncWebServerRequest *request, String filename, size_t index,
+              uint8_t *data, size_t len, bool final) {
+  // Handle upload
+}
+
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
+             AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  // Handle WebSocket event
+}
+#endif  // ifdef WEBSERVER
 
 void setup() {
   delay(100);
 
-  /******* Serial initialization ************/
+  /***** SERIAL INITIALIZATION *****/
   Serial_USB.begin(UART_BAUD);
   Serial_DE.begin(UART_BAUD, SERIAL_PARAM, SERIAL_DE_RX_PIN, SERIAL_DE_TX_PIN);
-  Serial_BLE.begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
+  Serial_BLE.begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN,
+                   SERIAL_BLE_TX_PIN);
 
-  // Need to make a couple of "low level" esp-idf-esque calls to setup HW flow
-  // contol for the BLE adaptor.  I think this is doable because it's provided
-  // in the driver here:
+  // Enabling HW flow control on BLE UART
   // https://github.com/espressif/arduino-esp32/blob/master/tools/sdk/include/driver/driver/uart.h
-  //
-  // For now only enabling CTS because it's only the BLE adaptor side that might
-  // use this.  May need to force the RTS pin low, we'll see
-  // Reference: esp_err_t uart_set_hw_flow_ctrl(uart_port_t uart_num, uart_hw_flowcontrol_t flow_ctrl, uint8_t rx_thresh);
   uart_set_hw_flow_ctrl(SERIAL_BLE_UART_NUM, UART_HW_FLOWCTRL_CTS_RTS, 0);
+  uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE,
+               SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
 
-  // Reference: esp_err_t uart_set_pin(uart_port_t uart_num, int tx_io_num, int rx_io_num, int rts_io_num, int cts_io_num);
-  uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
+  /***** WEBSERVER INITIALIZATION ***********/
+#ifdef WEBSERVER
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.printf("WiFi Failed!\n");
+    return;
+  }
 
+  // attach AsyncWebSocket
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
 
-  /******* Wifi initialization ***********/
-#ifdef WIFI
+  // attach AsyncEventSource
+  server.addHandler(&events);
 
-/***
-  
-  // Initialize the web configuration interface
-  iotWebConf.setWifiConnectionCallback(&wifiConnected);
-  iotWebConf.init();
-  // Set up required URL handlers on the web server.
-  webServer.on("/", handleRoot);
-  webServer.on("/config", [] { iotWebConf.handleConfig(); });
-  webServer.onNotFound([]() {
-    iotWebConf.handleNotFound();
+  // // respond to GET requests on URL /heap
+  // server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request){
+  //   request->send(200, "text/plain", String(ESP.getFreeHeap()));
+  // });
+
+  // // upload a file to /upload
+  // server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request){
+  //   request->send(200);
+  // }, onUpload);
+
+  // // send a file when /index is requested
+  // server.on("/index", HTTP_ANY, [](AsyncWebServerRequest *request){
+  //   request->send(SPIFFS, "/index.htm");
+  // });
+
+  // HTTP basic authentication
+  server.on("/login", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!request->authenticate(http_username, http_password))
+      return request->requestAuthentication();
+    request->send(200, "text/plain", "Login Success!");
   });
-  Serial.println("Web configuration interface initialized.");
+  // Simple Firmware Update Form
+  server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/html",
+                  "<form method='POST' action='/update' "
+                  "enctype='multipart/form-data'><input type='file' "
+                  "name='update'><input type='submit' value='Update'></form>");
+  });
+  server.on("/update", HTTP_POST,
+            [](AsyncWebServerRequest *request) {
+              shouldReboot = !Update.hasError();
+              AsyncWebServerResponse *response = request->beginResponse(
+                  200, "text/plain", shouldReboot ? "OK" : "FAIL");
+              response->addHeader("Connection", "close");
+              request->send(response);
+            },
+            [](AsyncWebServerRequest *request, String filename, size_t index,
+               uint8_t *data, size_t len, bool final) {
+              if (!index) {
+                Serial.printf("Update Start: %s\n", filename.c_str());
+                if (!Update.begin()) {
+                }
+              }
+              if (!Update.hasError()) {
+                if (Update.write(data, len) != len) {
+                  Update.printError(Serial);
+                }
+              }
+              if (final) {
+                if (Update.end(true)) {
+                  Serial.printf("Update Success: %uB\n", index + len);
+                } else {
+                  Update.printError(Serial);
+                }
+              }
+            });
 
-  ***/
+  // // attach filesystem root at URL /fs
+  // server.serveStatic("/fs", SPIFFS, "/");
 
-    Serial.println();
-    Serial.println();
-    Serial.print("Connecting to wifi");
-    WiFi.begin("myssid", "wpa2passwd");
+  // Catch-All Handlers
+  // Any request that can not find a Handler that canHandle it
+  // ends in the callbacks below.
+  server.onNotFound(onRequest);
+  server.onFileUpload(onUpload);
+  server.onRequestBody(onBody);
 
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-    wifiReady = true;
-    TCPServer.begin(); // start TCP server
-    TCPServer.setNoDelay(true);
-    Serial.println("TCP server enabled");
-
-
-#endif // WIFI
+  server.begin();
+#endif  // WEBSERVER
 
   delay(10);
   Serial_USB.println("Plucky initialization completed.");
 }
 
 void loop() {
-
   uint8_t buf[bufferSize];
   uint16_t bufIndex = 0;
 
-#ifdef WIFI
-
-/***
-  
-  // Handler for the web configuration UI
-  iotWebConf.doLoop();
-***/
-
-  if (wifiReady) {
-    // Check for new incoming connections
-    if (TCPServer.hasClient()) {
-      //find free/disconnected spot
-      for (byte i = 0; i < MAX_TCP_CLIENTS; i++) {
-       if (!TCPClient[i] || !TCPClient[i].connected()) {
-          if (TCPClient[i]) {
-            TCPClient[i].stop();
-         }
-          TCPClient[i] = TCPServer.available();
-          Serial_USB.print("New TCP client in slot: ");
-          Serial_USB.println(i);
-          break;
-        }
-       if (i == MAX_TCP_CLIENTS - 1 ) {
-          //no free/disconnected spot so reject it
-          WiFiClient TmpserverClient = TCPServer.available();
-          TmpserverClient.stop();
-         Serial_USB.println("Too many TCP clients; new connection dropped");
-        }
-      }
-    }
+#ifdef WEBSERVER
+  if (shouldReboot) {
+    Serial.println("Rebooting...");
+    delay(100);
+    ESP.restart();
   }
 
-#endif // WIFI
+  static char temp[128];
+  sprintf(temp, "Seconds since boot: %lu", millis() / 1000);
+  events.send(temp, "time");  // send event "time"
+
+#endif  // WEBSERVER
 
   // Broadcast DE1 messages to controllers
   if (Serial_DE.available()) {
     bufIndex = 0;
-    if (Serial_DE.available()) {
-      byte c = Serial_DE.read(); // read char from DE UART
-      Serial_BLE.write(c);
-      Serial_USB.write(c);
-
-#ifdef WIFI
-      // Send to TCP clients
-      if (wifiReady) {
-        for (byte client_num = 0; client_num < MAX_TCP_CLIENTS; client_num++) {
-         if (TCPClient[client_num]) {
-            Serial_USB.write(c);
-            //TCPClient[client_num].write(c); 
-          } 
-        }
-      }
-#endif // WIFI
-      
-      if(c == '\n') {
-        //break; // we don't want to get into a state where buffers misalign with the message frames
+    while (Serial_BLE.available() && (bufIndex < (bufferSize - 1))) {
+      buf[bufIndex] = Serial_BLE.read();
+      bufIndex++;
+      if (buf[bufIndex - 1] == '\n') {
+        // we don't want to get into a state where buffers misalign with
+        // the message frames
+        break;
       }
     }
-/***
     // Send to serial interfaces
     Serial_BLE.write(buf, bufIndex);
     Serial_USB.write(buf, bufIndex);
-
-#ifdef WIFI
-    // Send to TCP clients
-    if (wifiReady) {
-      for (byte client_num = 0; client_num < MAX_TCP_CLIENTS; client_num++) {
-        if (TCPClient[client_num]) {
-          TCPClient[client_num].write(buf, bufIndex); 
-        }
-      }
-    }
-#endif // WIFI
-***/
   }
 
   // Bridge BLE messages to DE1
@@ -225,15 +215,14 @@ void loop() {
     while (Serial_BLE.available() && (bufIndex < (bufferSize - 1))) {
       buf[bufIndex] = Serial_BLE.read();
       bufIndex++;
-      if(buf[bufIndex-1] == '\n') {
-        break; // we don't want to get into a state where buffers misalign with the message frames
+      if (buf[bufIndex - 1] == '\n') {
+        break;  // we don't want to get into a state where buffers misalign
+                // with the message frames
       }
     }
-
     // Send to DE
     Serial_DE.write(buf, bufIndex);
   }
-
 
   // Bridge USB messages to DE1
   if (Serial_USB.available()) {
@@ -241,73 +230,16 @@ void loop() {
     while (Serial_USB.available() && (bufIndex < (bufferSize - 1))) {
       buf[bufIndex] = Serial_USB.read();
       bufIndex++;
-      if(buf[bufIndex-1] == '\n') {
-        break; // we don't want to get into a state where buffers misalign with the message frames
+      if (buf[bufIndex - 1] == '\n') {
+        break;  // we don't want to get into a state where buffers misalign
+                // with the message frames
       }
-  }
-
+    }
     // Send to DE
     Serial_DE.write(buf, bufIndex);
+    Serial_DE.write(buf, bufIndex);
+    // Send to DE
+    Serial_DE.write(buf, bufIndex);
+    Serial_DE.write(buf, bufIndex);
   }
-
-
-#ifdef WIFI
-  // Bridge TCP messages to DE1
-  if (wifiReady) {
-    for (byte client_num = 0; client_num < MAX_TCP_CLIENTS; client_num++) {
-     if (TCPClient[client_num]) {
-       if (TCPClient[client_num].available()) {
-         bufIndex = 0;
-         while (TCPClient[client_num].available() && (bufIndex < (bufferSize - 1))) {
-           buf[bufIndex] = TCPClient[client_num].read();
-           bufIndex++;
-           if(buf[bufIndex-1] == '\n') {
-              break; // we don't want to get into a state where buffers misalign with the message frames
-            }         
-         }
-
-         // Send to DE
-         Serial_DE.write(buf, bufIndex);
-       }
-     }
-   }
-  }
-#endif // WIFI
-
-
 }
-
-
-/***
-void wifiConnected()
-{
-  // Initialize the TCP server for talking to the machine
-  Serial.println("Wifi Ready - enabling TCP server");
-  wifiReady = true;
-  TCPServer.begin(); // start TCP server
-  TCPServer.setNoDelay(true);
-}
-***/
-
-/*
-   Web configuration: Handle web requests to "/" path.
-*/
-#if 0
-#ifdef WIFI
-void handleRoot()
-{
-  // Let IotWebConf test and handle captive portal requests.
-  if (iotWebConf.handleCaptivePortal())
-  {
-    // Captive portal request were already served.
-    return;
-  }
-  String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
-  s += "<title>Plucky Web Interface</title></head><body>Hello world!";
-  s += "Go to <a href='config'>configure page</a> to change settings.";
-  s += "</body></html>\n";
-
-  webServer.send(200, "text/html", s);
-}
-#endif // WIFI
-#endif // 0
