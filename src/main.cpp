@@ -195,8 +195,8 @@ void loop() {
   // Broadcast DE1 messages to controllers
   if (Serial_DE.available()) {
     bufIndex = 0;
-    while (Serial_BLE.available() && (bufIndex < (bufferSize - 1))) {
-      buf[bufIndex] = Serial_BLE.read();
+    while (Serial_DE.available() && (bufIndex < (bufferSize - 1))) {
+      buf[bufIndex] = Serial_DE.read();
       bufIndex++;
       if (buf[bufIndex - 1] == '\n') {
         // we don't want to get into a state where buffers misalign with
