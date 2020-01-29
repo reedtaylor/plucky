@@ -232,12 +232,7 @@ void loop() {
     ESP.restart();
   }
 
-  ws.cleanupClients();
-
-  // static char temp[128];
-  // sprintf(temp, "Seconds since boot: %lu", millis() / 1000);
-  // events.send(temp, "time");  // send event "time"
-
+  ws.cleanupClients(maxWebsocketClients);
 #endif  // WEBSERVER
 
   // Broadcast DE1 messages to controllers
