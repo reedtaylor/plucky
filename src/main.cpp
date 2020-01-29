@@ -23,12 +23,28 @@ const uint SERIAL_BLE_RTS_PIN = 33;
 /****************  WiFi & WebServer Config *************************/
 #define WEBSERVER
 
-/***^^^^^^^^^^^^^^^^^^^^^  END OF CONFIGURATIONS ^^^^^^^^^^^^^^^^^^^^^***/
+#ifdef WEBSERVER
+#define WEBSOCKET
+
+#ifdef WEBSOCKET
+const uint maxWebsocketClients = 8;
+#endif // WEBSOCKET
+
+#endif // WEBSERVER
+/***^^^^^^^^^^^^^^^^^^^^^  END OF CONFIGURATION ^^^^^^^^^^^^^^^^^^^^^***/
 
 /***** SERIAL INSTANTIATION *****/
 HardwareSerial &Serial_USB = Serial;
+uint8_t readBuf_USB[bufferSize];
+uint16_t readBufIndex_USB = 0;
+
 HardwareSerial Serial_DE(SERIAL_DE_UART_NUM);
+uint8_t readBuf_DE[bufferSize];
+uint16_t readBufIndex_DE = 0;
+
 HardwareSerial Serial_BLE(SERIAL_BLE_UART_NUM);
+uint8_t readBuf_BLE[bufferSize];
+uint16_t readBufIndex_BLE = 0;
 
 /***** WEBSERVER INSTANTIATION *****/
 #ifdef WEBSERVER
@@ -38,9 +54,33 @@ HardwareSerial Serial_BLE(SERIAL_BLE_UART_NUM);
 #include "Update.h"
 
 AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");            // access at ws://[esp ip]/ws
-AsyncEventSource events("/events");  // event source (Server-Sent events)
 
+
+#ifdef WEBSOCKET
+
+// Wrapper class to add a readbuffer
+class AsyncWebSocketClientRB: public AsyncWebSocketClient {
+  public:
+    AsyncWebSocketClientRB(AsyncWebServerRequest *request, AsyncWebSocket *server) 
+      :AsyncWebSocketClient {request, server} { };
+    ~AsyncWebSocketClientRB() {};
+    uint8_t readBuf[bufferSize];
+};
+
+// Wrapper class use the readbuffer client
+class AsyncWebSocketRB: public AsyncWebSocket {
+  public:
+    AsyncWebSocketRB(const String& url) 
+      : AsyncWebSocket{ url } { };
+    ~AsyncWebSocketRB() { };
+    typedef LinkedList<AsyncWebSocketClientRB *> AsyncWebSocketClientLinkedList;
+};
+
+AsyncWebSocketRB ws("/ws");            // access at ws://[esp ip]/ws
+
+#endif // WEBSOCKET
+
+// simple wifi signin - to be replaced later
 const char *ssid = "myssid";
 const char *password = "wpa2passwd";
 const char *http_username = "admin";
@@ -64,74 +104,44 @@ void onUpload(AsyncWebServerRequest *request, String filename, size_t index,
   // Handle upload
 }
 
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
+#ifdef WEBSOCKET
+void onEvent(AsyncWebSocketRB *server, AsyncWebSocketClientRB *client,
              AwsEventType type, void *arg, uint8_t *data, size_t len) {
-  if(type == WS_EVT_CONNECT){
-    //client connected
-    Serial_USB.printf("ws[%s][%u] connect\n", server->url(), client->id());
-    client->printf("Hello Client %u :)", client->id());
-    client->ping();
-  } else if(type == WS_EVT_DISCONNECT){
+  if(type == WS_EVT_CONNECT) {
+    // make sure there is room for this client
+    server->cleanupClients(maxWebsocketClients-1);    
+    Serial_USB.printf("WS connect [client=%u]\n", client->id());
+    client->ping();    
+  } else if(type == WS_EVT_DISCONNECT) {
     //client disconnected
-    Serial_USB.printf("ws[%s][%u] disconnect: %u\n", server->url(), client->id());
-  } else if(type == WS_EVT_ERROR){
+    Serial_USB.printf("WS disconect [client=%u]\n", client->id());
+  } else if(type == WS_EVT_ERROR) {
     //error was received from the other end
-    Serial_USB.printf("ws[%s][%u] error(%u): %s\n", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
-  } else if(type == WS_EVT_PONG){
+    Serial_USB.printf("WS error [client=%u error=%u]: %s\n", client->id(), *((uint16_t*)arg), (char*)data);
+  } else if(type == WS_EVT_PONG) {
     //pong message was received (in response to a ping request maybe)
-    Serial_USB.printf("ws[%s][%u] pong[%u]: %s\n", server->url(), client->id(), len, (len)?(char*)data:"");
-  } else if(type == WS_EVT_DATA){
+    Serial_USB.printf("WS pong [client=%u len=%u]: %s\n", client->id(), len, (len)?(char*)data:"");
+  } else if(type == WS_EVT_DATA) {
     //data packet
     AwsFrameInfo * info = (AwsFrameInfo*)arg;
-    if(info->final && info->index == 0 && info->len == len){
-      //the whole message is in a single frame and we got all of it's data
-      Serial_USB.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
-      if(info->opcode == WS_TEXT){
-        data[len] = 0;
-        Serial_USB.printf("%s\n", (char*)data);
-      } else {
-        for(size_t i=0; i < info->len; i++){
-          Serial_USB.printf("%02x ", data[i]);
-        }
-        Serial_USB.printf("\n");
-      }
-      if(info->opcode == WS_TEXT)
-        client->text("I got your text message");
-      else
-        client->binary("I got your binary message");
-    } else {
-      //message is comprised of multiple frames or the frame is split into multiple packets
-      if(info->index == 0){
-        if(info->num == 0)
-          Serial_USB.printf("ws[%s][%u] %s-message start\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-        Serial_USB.printf("ws[%s][%u] frame[%u] start[%llu]\n", server->url(), client->id(), info->num, info->len);
-      }
 
-      Serial_USB.printf("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
-      if(info->message_opcode == WS_TEXT){
-        data[len] = 0;
-        Serial_USB.printf("%s\n", (char*)data);
-      } else {
-        for(size_t i=0; i < len; i++){
-          Serial_USB.printf("%02x ", data[i]);
-        }
-        Serial_USB.printf("\n");
-      }
+    // Copy the current frame into our read buffer 
+    // (redundant for single-frame messages; keeping for simpliciy)
+    for (uint16_t i=0; i<info->len; i++) {
+      client->readBuf[info->index + i] =  data[i];
+    }
 
-      if((info->index + len) == info->len){
-        Serial_USB.printf("ws[%s][%u] frame[%u] end[%llu]\n", server->url(), client->id(), info->num, info->len);
-        if(info->final){
-          Serial_USB.printf("ws[%s][%u] %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-          if(info->message_opcode == WS_TEXT)
-            client->text("I got your text message");
-          else
-            client->binary("I got your binary message");
-        }
-      }
+    Serial_USB.printf("WS message [client=%u frame=%u final=%u type=%s length=%llu]: ", client->id(), info->num, info->final, (info->opcode == WS_TEXT)?"text":"binary", (info->index + info->len));
+    Serial_USB.write(client->readBuf, (info->index + info->len));
+    Serial_USB.printf("\n");
+    if(info->final){
+      // This message frame was the last (or only) one, so can now transmit the read buffer
+      Serial_DE.write(client->readBuf, (info->index + info->len));
     }
   }
 }
-#endif  // ifdef WEBSERVER
+#endif // WEBSOCKET
+#endif // WEBSERVER
 
 void setup() {
   delay(100);
@@ -157,35 +167,11 @@ void setup() {
     return;
   }
 
+#ifdef WEBSOCKET
   // attach AsyncWebSocket
-  ws.onEvent(onEvent);
   server.addHandler(&ws);
+#endif // WEBSOCKET  
 
-  // attach AsyncEventSource
-  server.addHandler(&events);
-
-  // // respond to GET requests on URL /heap
-  // server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request){
-  //   request->send(200, "text/plain", String(ESP.getFreeHeap()));
-  // });
-
-  // // upload a file to /upload
-  // server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request){
-  //   request->send(200);
-  // }, onUpload);
-
-  // // send a file when /index is requested
-  // server.on("/index", HTTP_ANY, [](AsyncWebServerRequest *request){
-  //   request->send(SPIFFS, "/index.htm");
-  // });
-
-  // HTTP basic authentication
-  server.on("/login", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (!request->authenticate(http_username, http_password))
-      return request->requestAuthentication();
-    request->send(200, "text/plain", "Login Success!");
-  });
- 
   // Simple Firmware Update Form
   server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(200, "text/html",
@@ -193,6 +179,7 @@ void setup() {
                   "enctype='multipart/form-data'><input type='file' "
                   "name='update'><input type='submit' value='Update'></form>");
   });
+
   server.on("/update", HTTP_POST,
             [](AsyncWebServerRequest *request) {
               shouldReboot = !Update.hasError();
@@ -222,9 +209,6 @@ void setup() {
               }
             });
 
-  // // attach filesystem root at URL /fs
-  // server.serveStatic("/fs", SPIFFS, "/");
-
   // Catch-All Handlers
   // Any request that can not find a Handler that canHandle it
   // ends in the callbacks below.
@@ -240,8 +224,6 @@ void setup() {
 }
 
 void loop() {
-  uint8_t buf[bufferSize];
-  uint16_t bufIndex = 0;
 
 #ifdef WEBSERVER
   if (shouldReboot) {
@@ -260,66 +242,73 @@ void loop() {
 
   // Broadcast DE1 messages to controllers
   if (Serial_DE.available()) {
-    bufIndex = 0;
-    while (Serial_DE.available() && (bufIndex < (bufferSize - 1))) {
-      buf[bufIndex] = Serial_DE.read();
-      bufIndex++;
-      if (buf[bufIndex - 1] == '\n') {
-        // we don't want to get into a state where buffers misalign with
-        // the message frames
-        break;
+    while (Serial_DE.available() && (readBufIndex_DE < bufferSize)) {
+      readBuf_DE[readBufIndex_DE] = Serial_DE.read();
+      readBufIndex_DE++;
+      if (readBuf_DE[readBufIndex_DE - 1] == '\n') {
+        // Send to serial interfaces
+        Serial_BLE.write(readBuf_DE, readBufIndex_DE);
+        Serial_USB.write(readBuf_DE, readBufIndex_DE);
+
+#ifdef WEBSOCKET
+        if (ws.count()) {
+          if (ws.availableForWriteAll()) {
+            ws.binaryAll(readBuf_DE, readBufIndex_DE);
+          } else {
+            // TODO we should sniff around and kill any clients in this situation  
+            // to avoid the tragedy of the commons or whatever
+            Serial_USB.println("Websockets blocking");
+         }
+        }   
+#endif // WEBSOCKET
+
+        readBufIndex_DE = 0;  /// <--- Hard to see but important line of code
       }
     }
-    // Send to serial interfaces
-    Serial_BLE.write(buf, bufIndex);
-    Serial_USB.write(buf, bufIndex);
 
-#ifdef WEBSERVER
-    if (ws.count()) {
-      if (ws.availableForWriteAll()) {
-        ws.binaryAll(buf, bufIndex);
-      } else {
-        // TODO we should sniff around and evict clients in this situation
-        // to avoid the tragedy of the commons or whatever
-        Serial_USB.println("Websockets blocking");
-      }
-    } 
-#endif // WEBSERVER
-
+    if (readBufIndex_DE >= bufferSize) {
+      Serial_USB.printf("WARNING: DE Read Buffer Overrun.  Buffer Contents: ");
+      Serial_USB.write(readBuf_DE, bufferSize);
+      Serial_USB.printf("\n");
+      readBufIndex_DE = 0;
+    }
   }
-
 
   // Bridge BLE messages to DE1
   if (Serial_BLE.available()) {
-    bufIndex = 0;
-    while (Serial_BLE.available() && (bufIndex < (bufferSize - 1))) {
-      buf[bufIndex] = Serial_BLE.read();
-      bufIndex++;
-      if (buf[bufIndex - 1] == '\n') {
-        break;  // we don't want to get into a state where buffers misalign
-                // with the message frames
+    while (Serial_BLE.available() && (readBufIndex_BLE < bufferSize)) {
+      readBuf_BLE[readBufIndex_BLE] = Serial_BLE.read();
+      readBufIndex_BLE++;
+      if (readBuf_BLE[readBufIndex_BLE - 1] == '\n') {
+        // Send to DE
+        Serial_DE.write(readBuf_BLE, readBufIndex_BLE);
+        readBufIndex_BLE = 0;
       }
     }
-    // Send to DE
-    Serial_DE.write(buf, bufIndex);
+    if (readBufIndex_BLE >= bufferSize) {
+      Serial_USB.printf("WARNING: BLE Read Buffer Overrun.  Buffer Contents: ");
+      Serial_USB.write(readBuf_BLE, bufferSize);
+      Serial_USB.printf("\n");
+      readBufIndex_BLE = 0;
+    }
   }
 
   // Bridge USB messages to DE1
   if (Serial_USB.available()) {
-    bufIndex = 0;
-    while (Serial_USB.available() && (bufIndex < (bufferSize - 1))) {
-      buf[bufIndex] = Serial_USB.read();
-      bufIndex++;
-      if (buf[bufIndex - 1] == '\n') {
-        break;  // we don't want to get into a state where buffers misalign
-                // with the message frames
+    while (Serial_USB.available() && (readBufIndex_USB < bufferSize)) {
+      readBuf_USB[readBufIndex_USB] = Serial_USB.read();
+      readBufIndex_USB++;
+      if (readBuf_USB[readBufIndex_USB - 1] == '\n') {
+        // Send to DE
+        Serial_DE.write(readBuf_USB, readBufIndex_USB);
+        readBufIndex_USB = 0;
       }
     }
-    // Send to DE
-    Serial_DE.write(buf, bufIndex);
-    Serial_DE.write(buf, bufIndex);
-    // Send to DE
-    Serial_DE.write(buf, bufIndex);
-    Serial_DE.write(buf, bufIndex);
+    if (readBufIndex_USB >= bufferSize) {
+      Serial_USB.printf("WARNING: BLE Read Buffer Overrun.  Buffer Contents: ");
+      Serial_USB.write(readBuf_USB, bufferSize);
+      Serial_USB.printf("\n");
+      readBufIndex_USB = 0;
+    }
   }
 }
