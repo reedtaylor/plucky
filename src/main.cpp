@@ -52,8 +52,10 @@ uint16_t readBufIndex_BLE = 0;
 #include "AsyncTCP.h"
 #include "ESPAsyncWebServer.h"
 #include "Update.h"
+#include "pages.h"
 
 AsyncWebServer server(80);
+
 
 
 #ifdef WEBSOCKET
@@ -164,13 +166,17 @@ void setup() {
   WiFi.begin(ssid, password);
   if (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.printf("WiFi Failed!\n");
-    return;
   }
 
 #ifdef WEBSOCKET
   // attach AsyncWebSocket
   server.addHandler(&ws);
 #endif // WEBSOCKET  
+
+  // respond to requests to the config ui
+  server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", config_html);
+  });
 
   // Simple Firmware Update Form
   server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request) {
