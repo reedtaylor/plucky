@@ -4,7 +4,7 @@
 
 /*************************  General Config *******************************/
 
-#define bufferSize 2048
+#define bufferSize 128
 #define DEBUG
 
 // Configuration specific key. The value should be modified if config structure was changed.
@@ -37,7 +37,7 @@ const char wifiInitialApPassword[] = "decentDE1";
 
 #define TCP
 #ifdef TCP
-const uint16_t maxTcpClients = 8;
+const uint16_t maxTcpClients = 6;
 const int tcpPort = 9090;
 #endif // TCP
 #endif // WIFI
@@ -70,13 +70,29 @@ void handleRoot();
 
 #ifdef TCP
 // Instantiate the TCP sockets for talking to the machine
-WiFiServer TCPServer(tcpPort);
+WiFiServer TCPServer(tcpPort, maxTcpClients);
 WiFiClient TCPClient[maxTcpClients];
 uint8_t readBuf_TCP[maxTcpClients][bufferSize];
 uint16_t readBufIndex_TCP[maxTcpClients];
 #endif // TCP
 
 #endif // WIFI
+
+void trimBuffer(uint8_t *buf, uint16_t &len, const char* interfaceName="[unspecified]") {
+  if (buf[len-1] == '\n') {
+    if (buf[len-2] == '\r') {
+      // convert CRLF to CR just to make everyone's lives easier
+      // but let's complain about it I guess
+      buf[len-2] = '\n';
+      len = len-1;
+      Serial_USB.print("WARNING: stripped CRLF from interface ");
+      Serial_USB.println(interfaceName);
+    }
+  }
+  if (len < bufferSize) {
+    buf[len] = 0; // force null termination for convenience
+  }
+}
 
 void setup() {
 
@@ -119,11 +135,27 @@ void loop() {
   iotWebConf->doLoop();
 
   if (WiFi.status() != WL_CONNECTED) {
+    // Proactively stop all TCP clients
+    for (uint16_t i=0; i<maxTcpClients; i++) {
+      if (TCPClient[i]) {
+        printf("Stopping TCP client[%d]", i);
+        TCPClient[i].stop();
+      }
+    }
     if (TCPServer) {
+      printf("Stopping TCP server");
+
       TCPServer.end();
     }
   } else {
     if (!TCPServer) {
+      // Kill any zombie TCP clients
+      for (uint16_t i=0; i<maxTcpClients; i++) {
+        if (TCPClient[i]) {
+          printf("Stopping TCP client[%d]", i);
+          TCPClient[i].stop();
+        }
+      }
       TCPServer.begin(); // start TCP server
       TCPServer.setNoDelay(true);
       Serial.println("TCP server enabled");
@@ -135,13 +167,16 @@ void loop() {
 #ifdef TCP
   // Check for new incoming connections
   if (TCPServer && TCPServer.hasClient()) { // find free/disconnected spot
-      for (byte i = 0; i < maxTcpClients; i ++) {
+     Serial_USB.print("New TCP client ");
+     for (uint16_t i = 0; i < maxTcpClients; i ++) {
         if (!TCPClient[i]) {
           TCPClient [i] = TCPServer.available();
           readBufIndex_TCP[i] = 0;
-          Serial_USB.print("New TCP client in slot: ");
+          Serial_USB.print(" in slot: ");
           Serial_USB.println(i);
           break;
+        } else {
+          Serial_USB.print(".");
         }
         if (i == maxTcpClients - 1) { // no free/disconnected spot so reject it
             WiFiClient TmpserverClient = TCPServer.available();
@@ -161,6 +196,8 @@ void loop() {
         // let's be super deliberate about resetting the readBufIndex lest we forget to do it below
         uint16_t sendLen = readBufIndex_DE;
         readBufIndex_DE = 0;
+
+        trimBuffer(readBuf_DE, sendLen, "Serial_DE");
 
         // Broadcast to Serial interfaces
         Serial_BLE.write(readBuf_DE, sendLen);
@@ -195,6 +232,8 @@ void loop() {
         uint16_t sendLen = readBufIndex_BLE;
         readBufIndex_BLE = 0;
 
+        trimBuffer(readBuf_BLE, sendLen, "Serial_BLE");
+
         // Send to DE
         Serial_DE.write(readBuf_BLE, sendLen);
       }
@@ -216,6 +255,9 @@ void loop() {
         // let's be super deliberate about resetting the readBufIndex lest we forget to do it below
         uint16_t sendLen = readBufIndex_USB;
         readBufIndex_USB = 0;
+
+        trimBuffer(readBuf_USB, sendLen, "Serial_USB");
+
 
         // Send to DE
         Serial_DE.write(readBuf_USB, sendLen);
@@ -242,8 +284,12 @@ void loop() {
           uint16_t sendLen = readBufIndex_TCP[i];
           readBufIndex_TCP[i] = 0;
 
+          char interfaceName[32];
+          sprintf (interfaceName, "TCP[%d]", i);
+          trimBuffer(readBuf_TCP[i], sendLen, interfaceName);
+
           // Send to DE
-          Serial_DE.write(readBuf_USB, sendLen);
+          Serial_DE.write(readBuf_TCP[i], sendLen);
         }
       }
     }
