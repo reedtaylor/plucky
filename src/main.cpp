@@ -101,22 +101,12 @@ void setup() {
     webServer.on("/config", []{ iotWebConf->handleConfig(); });
     webServer.onNotFound([](){ iotWebConf->handleNotFound(); });
 
-    Serial_USB.print("Waiting for WiFi");
-    while (WiFi.status() != WL_CONNECTED) {
-      Serial_USB.print(".");
-      iotWebConf->doLoop();
-      delay(200);
-    }
-
     Serial.println("");
     Serial.println("WiFi connected");
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
 
 #ifdef TCP
-    TCPServer.begin(); // start TCP server
-    TCPServer.setNoDelay(true);
-    Serial.println("TCP server enabled");
 #endif // TCP
 #endif // WIFI
 
@@ -127,11 +117,24 @@ void setup() {
 void loop() {
 #ifdef WIFI
   iotWebConf->doLoop();
+
+  if (WiFi.status() != WL_CONNECTED) {
+    if (TCPServer) {
+      TCPServer.end();
+    }
+  } else {
+    if (!TCPServer) {
+      TCPServer.begin(); // start TCP server
+      TCPServer.setNoDelay(true);
+      Serial.println("TCP server enabled");
+    }
+  }
+
 #endif // WIFI
 
 #ifdef TCP
   // Check for new incoming connections
-  if (TCPServer.hasClient()) { // find free/disconnected spot
+  if (TCPServer && TCPServer.hasClient()) { // find free/disconnected spot
       for (byte i = 0; i < maxTcpClients; i ++) {
         if (!TCPClient[i]) {
           TCPClient [i] = TCPServer.available();
