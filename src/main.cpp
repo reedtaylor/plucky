@@ -31,13 +31,16 @@
 #define WIFI
 #ifdef WIFI
 
+const char wifiInitialApPassword[] = "decentDE1";
+#define IOTWEBCONF_DEBUG_TO_SERIAL
+#define IOTWEBCONF_DEBUG_PWD_TO_SERIAL
+
 #define TCP
 #ifdef TCP
 const uint16_t maxTcpClients = 8;
 const int tcpPort = 9090;
 #endif // TCP
-#endif
-// WIFI
+#endif // WIFI
 
 // / end config ///////////////////////////////////////////////////////////
 
@@ -56,7 +59,14 @@ uint8_t readBuf_BLE[bufferSize];
 uint16_t readBufIndex_BLE = 0;
 
 #ifdef WIFI
-#include <WiFi.h> 
+#include <IotWebConf.h>
+
+char machineName[33]; // initial name of the machine -- used as default AP SSID etc.
+
+DNSServer dnsServer;
+WebServer webServer(80);
+IotWebConf *iotWebConf;
+void handleRoot();
 
 #ifdef TCP
 // Instantiate the TCP sockets for talking to the machine
@@ -80,15 +90,22 @@ void setup() {
     uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
 
     /******* Wifi initialization ***********/
-    #ifdef WIFI
-    Serial.println();
-    Serial.println();
-    Serial.print("Connecting to wifi");
-    WiFi.begin("myssid", "wpa2passwd");
+#ifdef WIFI
+    // Initial name of the board. Used e.g. as SSID of the own Access Point.
+    sprintf(machineName, "DE1-%04X", (uint32_t)ESP.getEfuseMac());
+    iotWebConf = new IotWebConf(machineName, &dnsServer, &webServer, wifiInitialApPassword);
+    iotWebConf->init();
 
+    // -- Set up required URL handlers on the web server.
+    webServer.on("/", handleRoot);
+    webServer.on("/config", []{ iotWebConf->handleConfig(); });
+    webServer.onNotFound([](){ iotWebConf->handleNotFound(); });
+
+    Serial_USB.print("Waiting for WiFi");
     while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
+      Serial_USB.print(".");
+      iotWebConf->doLoop();
+      delay(200);
     }
 
     Serial.println("");
@@ -96,18 +113,21 @@ void setup() {
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
 
-    #ifdef TCP
+#ifdef TCP
     TCPServer.begin(); // start TCP server
     TCPServer.setNoDelay(true);
     Serial.println("TCP server enabled");
-    #endif // TCP
-    #endif // WIFI
+#endif // TCP
+#endif // WIFI
 
     delay(10);
     Serial_USB.println("Plucky initialization completed.");
 }
 
 void loop() {
+#ifdef WIFI
+  iotWebConf->doLoop();
+#endif // WIFI
 
 #ifdef TCP
   // Check for new incoming connections
@@ -232,4 +252,21 @@ void loop() {
     } 
   } 
 #endif // WIFI}}}#endif // WIFI#endif // 0
+}
+
+// Handle web requests to "/" path.
+void handleRoot()
+{
+  // -- Let IotWebConf test and handle captive portal requests.
+  if (iotWebConf->handleCaptivePortal())
+  {
+    // Captive portal request were already served.
+    return;
+  }
+  String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
+  s += "<title>IotWebConf 01 Minimal</title></head><body>Hello world!";
+  s += "Go to <a href='config'>configure page</a> to change settings.";
+  s += "</body></html>\n";
+
+  webServer.send(200, "text/html", s);
 }
