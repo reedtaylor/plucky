@@ -105,6 +105,7 @@ void wifiConnectedHandler() {
     // esp32 dhcp hostname bug https://github.com/espressif/esp-lwip/pull/6
     // workaround https://github.com/espressif/arduino-esp32/issues/2537#issuecomment-508558849
     char *updatedMachineName = iotWebConf->getThingName(); // pulls in the machine name if overrridden previously via web config
+    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
     WiFi.setHostname(updatedMachineName);      
 }
 
