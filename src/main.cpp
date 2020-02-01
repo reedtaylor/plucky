@@ -28,14 +28,14 @@
 
 
 /*************************  WiFi & TCP Config *******************************/
-//#define WIFI
+#define WIFI
 #ifdef WIFI
 
 const char wifiInitialApPassword[] = "decentDE1";
 #define IOTWEBCONF_DEBUG_TO_SERIAL
 #define IOTWEBCONF_DEBUG_PWD_TO_SERIAL
 const uint16_t wifiConfigPin = 26; // right next door to GND so easy to short
-                                   // in an emergency - no button on the board :(
+                                   // in an emergency - no button on the mk3b board :(
 
 #define TCP
 #ifdef TCP
@@ -130,8 +130,6 @@ void setup() {
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
 
-#ifdef TCP
-#endif // TCP
 #endif // WIFI
 
     delay(10);
@@ -143,33 +141,22 @@ void loop() {
   iotWebConf->doLoop();
 
   if (WiFi.status() != WL_CONNECTED) {
-    // Proactively stop all TCP clients
-    for (uint16_t i=0; i<maxTcpClients; i++) {
-      if (TCPClient[i]) {
-        printf("Stopping TCP client[%d]", i);
-        TCPClient[i].stop();
-      }
-    }
+#ifdef TCP
     if (TCPServer) {
       printf("Stopping TCP server");
 
       TCPServer.end();
     }
+#endif // TCP
   } else {
+#ifdef TCP
     if (!TCPServer) {
-      // Kill any zombie TCP clients
-      for (uint16_t i=0; i<maxTcpClients; i++) {
-        if (TCPClient[i]) {
-          printf("Stopping TCP client[%d]", i);
-          TCPClient[i].stop();
-        }
-      }
       TCPServer.begin(); // start TCP server
       TCPServer.setNoDelay(true);
       Serial.println("TCP server enabled");
     }
+#endif // TCP
   }
-
 #endif // WIFI
 
 #ifdef TCP
@@ -311,7 +298,7 @@ void loop() {
       readBufIndex_TCP[i] = 0;
     } 
   } 
-#endif // WIFI
+#endif // TCP
 }
 
 #ifdef WIFI
