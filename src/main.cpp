@@ -8,7 +8,7 @@
 #define DEBUG
 
 // Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "plucky_0.01"
+#define CONFIG_VERSION "plucky-0.01"
 
 
 /*************************  UART Config *******************************/
@@ -34,8 +34,12 @@
 const char wifiInitialApPassword[] = "decentDE1";
 #define IOTWEBCONF_DEBUG_TO_SERIAL
 #define IOTWEBCONF_DEBUG_PWD_TO_SERIAL
-const uint16_t wifiConfigPin = 26; // right next door to GND so easy to short
-                                   // in an emergency - no button on the mk3b board :(
+// There is a poweron-password-reset caoability built into iotewebconf
+// Daybreak Mk3b does not have any buttons wired up :( so let's use
+// pin 26 which is right next to GND, hopefully easy to short in an emergency
+const uint16_t wifiConfigPin = 26; 
+
+#define OTA
 
 #define TCP
 #ifdef TCP
@@ -72,6 +76,11 @@ char machineName[33]; // initial name of the machine -- used as default AP SSID 
 
 DNSServer dnsServer;
 WebServer webServer(80);
+
+#ifdef OTA
+HTTPUpdateServer httpUpdater;
+#endif // OTA
+
 IotWebConf *iotWebConf;
 void handleRoot();
 
@@ -127,6 +136,9 @@ void setup() {
     iotWebConf = new IotWebConf(machineName, &dnsServer, &webServer, wifiInitialApPassword);
     iotWebConf->setConfigPin(wifiConfigPin);
     iotWebConf->setWifiConnectionCallback(wifiConnectedHandler);
+#ifdef OTA
+    iotWebConf->setupUpdateServer(&httpUpdater);
+#endif
     iotWebConf->init();
 
     // -- Set up required URL handlers on the web server.
