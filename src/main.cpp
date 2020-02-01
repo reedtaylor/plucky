@@ -101,6 +101,13 @@ void trimBuffer(uint8_t *buf, uint16_t &len, const char* interfaceName="[unspeci
   }
 }
 
+void wifiConnectedHandler() {
+    // esp32 dhcp hostname bug https://github.com/espressif/esp-lwip/pull/6
+    // workaround https://github.com/espressif/arduino-esp32/issues/2537#issuecomment-508558849
+    char *updatedMachineName = iotWebConf->getThingName(); // pulls in the machine name if overrridden previously via web config
+    WiFi.setHostname(updatedMachineName);      
+}
+
 void setup() {
 
     /******* Serial initialization ************/
@@ -118,6 +125,7 @@ void setup() {
     sprintf(machineName, "DE1-%04X", (uint32_t)ESP.getEfuseMac());    
     iotWebConf = new IotWebConf(machineName, &dnsServer, &webServer, wifiInitialApPassword);
     iotWebConf->setConfigPin(wifiConfigPin);
+    iotWebConf->setWifiConnectionCallback(wifiConnectedHandler);
     iotWebConf->init();
 
     // -- Set up required URL handlers on the web server.
