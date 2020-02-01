@@ -28,7 +28,7 @@
 
 
 /*************************  WiFi & TCP Config *******************************/
-#define WIFI
+//#define WIFI
 #ifdef WIFI
 
 const char wifiInitialApPassword[] = "decentDE1";
@@ -311,9 +311,10 @@ void loop() {
       readBufIndex_TCP[i] = 0;
     } 
   } 
-#endif // WIFI}}}#endif // WIFI#endif // 0
+#endif // WIFI
 }
 
+#ifdef WIFI
 // Handle web requests to "/" path.
 void handleRoot()
 {
@@ -330,3 +331,4 @@ void handleRoot()
 
   webServer.send(200, "text/html", s);
 }
+#endif // WIFI
