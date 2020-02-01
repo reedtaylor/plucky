@@ -34,6 +34,8 @@
 const char wifiInitialApPassword[] = "decentDE1";
 #define IOTWEBCONF_DEBUG_TO_SERIAL
 #define IOTWEBCONF_DEBUG_PWD_TO_SERIAL
+const uint16_t wifiConfigPin = 26; // right next door to GND so easy to short
+                                   // in an emergency - no button on the board :(
 
 #define TCP
 #ifdef TCP
@@ -45,7 +47,12 @@ const int tcpPort = 9090;
 // / end config ///////////////////////////////////////////////////////////
 
 // Enumerate the hardware serial devices
-#include "driver/uart.h"
+#include <driver/uart.h>
+// work around a linter bug
+#ifndef UART_PIN_NO_CHANGE
+#define UART_PIN_NO_CHANGE (-1)
+#endif
+
 HardwareSerial & Serial_USB = Serial;
 uint8_t readBuf_USB[bufferSize];
 uint16_t readBufIndex_USB = 0;
@@ -108,8 +115,9 @@ void setup() {
     /******* Wifi initialization ***********/
 #ifdef WIFI
     // Initial name of the board. Used e.g. as SSID of the own Access Point.
-    sprintf(machineName, "DE1-%04X", (uint32_t)ESP.getEfuseMac());
+    sprintf(machineName, "DE1-%04X", (uint32_t)ESP.getEfuseMac());    
     iotWebConf = new IotWebConf(machineName, &dnsServer, &webServer, wifiInitialApPassword);
+    iotWebConf->setConfigPin(wifiConfigPin);
     iotWebConf->init();
 
     // -- Set up required URL handlers on the web server.
@@ -258,6 +266,9 @@ void loop() {
 
         trimBuffer(readBuf_USB, sendLen, "Serial_USB");
 
+        if (strncmp((char *)readBuf_USB, "WIFIRESET", 9)) {
+
+        }
 
         // Send to DE
         Serial_DE.write(readBuf_USB, sendLen);
