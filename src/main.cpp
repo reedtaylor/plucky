@@ -12,7 +12,7 @@
 #define DEBUG
 
 // Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "plucky-0.03"
+#define CONFIG_VERSION "plucky-0.04"
 
 /*************************  UART Config *******************************/
 
@@ -93,7 +93,8 @@ uart_hw_flowcontrol_t bleFlowControl = UART_HW_FLOWCTRL_DISABLE;
 
 #endif // DEFAULT_BLE_FLOW_CONTROL 
 
-char bleFlowControlStr[2] = BLE_FLOW_CONTROL_DEFAULT_STR;
+#define BLE_FLOW_CONTROL_STR_LEN 4
+char bleFlowControlStr[BLE_FLOW_CONTROL_STR_LEN] = BLE_FLOW_CONTROL_DEFAULT_STR;
 // These pin assignments are not used if BLE flow control is off
 #define SERIAL_BLE_CTS_PIN 12
 #define SERIAL_BLE_RTS_PIN 33
@@ -109,7 +110,7 @@ WebServer webServer(80);
 
 // Configuration parameters
 IotWebConfSeparator separator_BLE = IotWebConfSeparator("BLE Serial Config");
-IotWebConfParameter bleFlowControlParam = IotWebConfParameter("Enable BLE CTS/RTS Flow Control", "intParam", bleFlowControlStr, 1, "number", "0 or 1", BLE_FLOW_CONTROL_DEFAULT_STR, "Set to 1 if Decent BLE is installed, 0 in most other situations");
+IotWebConfParameter bleFlowControlParam = IotWebConfParameter("Enable BLE CTS/RTS Flow Control<br/>(Set to 1 if Decent BLE is installed, 0 in most other situations)", "bleFlowControl", bleFlowControlStr, BLE_FLOW_CONTROL_STR_LEN, "number", "0 or 1", BLE_FLOW_CONTROL_DEFAULT_STR, "", true);
 
 #ifdef OTA
 HTTPUpdateServer httpUpdater;
@@ -163,7 +164,7 @@ void setup() {
 #ifdef WIFI
     // Initial name of the board. Used e.g. as SSID of the own Access Point.
     sprintf(machineName, "DE1-%04X", (uint32_t)ESP.getEfuseMac());    
-    iotWebConf = new IotWebConf(machineName, &dnsServer, &webServer, wifiInitialApPassword);
+    iotWebConf = new IotWebConf(machineName, &dnsServer, &webServer, wifiInitialApPassword, CONFIG_VERSION);
     iotWebConf->setConfigPin(wifiConfigPin);
     iotWebConf->setWifiConnectionCallback(wifiConnectedHandler);
 #ifdef OTA
@@ -188,10 +189,13 @@ void setup() {
 #endif // WIFI
 
     /***** Flow Control for BLE *******/
-    if (strcmp(bleFlowControlStr, "1")) {
+    if (atoi(bleFlowControlStr) == 0) {
+      Serial_USB.println("HW flow control for BLE not enabled.");
+    } else {
+      Serial_USB.println("Enabling HW flow control for BLE");
       uart_set_hw_flow_ctrl(SERIAL_BLE_UART_NUM, UART_HW_FLOWCTRL_CTS_RTS, 0);
       uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
-    } 
+    }
 
     delay(10);
     Serial_USB.println("Plucky initialization completed.");
@@ -204,7 +208,7 @@ void loop() {
   if (WiFi.status() != WL_CONNECTED) {
 #ifdef TCP
     if (TCPServer) {
-      printf("Stopping TCP server");
+      Serial_USB.println("Stopping TCP server");
 
       TCPServer.end();
     }
@@ -214,7 +218,7 @@ void loop() {
     if (!TCPServer) {
       TCPServer.begin(); // start TCP server
       TCPServer.setNoDelay(true);
-      Serial.println("TCP server enabled");
+      Serial_USB.println("TCP server enabled");
     }
 #endif // TCP
   }
@@ -257,13 +261,12 @@ void loop() {
 
         // Broadcast to Serial interfaces
 
-          // Need to check for this due to flow control.  
-          // Mk3b board has a bug where we are pulling down RTS instad of CTS -- dumb.  Intended
-          // to fight the FTDI weak pullup on CTS during reset. :( 
-          // Anyway we need to be careful not to block the entire loop on this write just because BLE
-          // board is not installed.  
-          // Note I think the ESP32 HardwareSerial writebuffer is 127 bytes so this should be enough
-          // to conatin any DE1 message (32 bytes of data max, meaning 64 bytes of ascii)
+        // Check: is BLE writeable?  (Need to check due to flow control.)
+        // Sad story: Mk3b board has a bug where it pulls down RTSB instad of CTSB -- dumb. :( 
+        // (Pulldown was intended to counteract the FTDI weak-pullup on CTS during reset.  
+        // As a result, the entire loop will block on write just because BLE board is not installed.  
+        // Note: I think the ESP32 HardwareSerial writebuffer is 127 bytes so this should be enough
+        // to conatin any DE1 message (32 bytes of data max, meaning 64 bytes of ascii)
         if (Serial_BLE.availableForWrite() > sendLen) {
           Serial_BLE.write(readBuf_DE, sendLen);
         } else {
@@ -387,8 +390,8 @@ void handleRoot()
     return;
   }
   String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
-  s += "<title>IotWebConf 01 Minimal</title></head><body>Hello world!";
-  s += "Go to <a href='config'>configure page</a> to change settings.";
+  s += "<title>DE1 Plucky Web Configuration</title></head><body><h1>Welcome to the DE1 Plucky Web Portal!</h1>";
+  s += "<div>Go to <a href='config'>configure page</a> to change settings.</div>";
   s += "</body></html>\n";
 
   webServer.send(200, "text/html", s);
