@@ -34,6 +34,7 @@
 const char wifiInitialApPassword[] = "decentDE1";
 #define IOTWEBCONF_DEBUG_TO_SERIAL
 #define IOTWEBCONF_DEBUG_PWD_TO_SERIAL
+
 // There is a poweron-password-reset caoability built into iotewebconf
 // Daybreak Mk3b does not have any buttons wired up :( so let's use
 // pin 26 which is right next to GND, hopefully easy to short in an emergency
@@ -52,7 +53,7 @@ const int tcpPort = 9090;
 
 // Enumerate the hardware serial devices
 #include <driver/uart.h>
-// work around a linter bug
+// work around a linter bug, this shouldn't really do anything
 #ifndef UART_PIN_NO_CHANGE
 #define UART_PIN_NO_CHANGE (-1)
 #endif
@@ -76,6 +77,14 @@ char machineName[33]; // initial name of the machine -- used as default AP SSID 
 
 DNSServer dnsServer;
 WebServer webServer(80);
+
+char intParamValue[NUMBER_LEN];
+
+IotWebConfSeparator separator_BLE = IotWebConfSeparator("BLE Serial Config");
+IotWebConfParameter intParam = IotWebConfParameter("Int param", "intParam", intParamValue, NUMBER_LEN, "number", "1..100", NULL, "min='1' max='100' step='1'");
+// -- We can add a legend to the separator
+IotWebConfParameter floatParam = IotWebConfParameter("Float param", "floatParam", floatParamValue, NUMBER_LEN, "number", "e.g. 23.4", NULL, "step='0.1'");
+
 
 #ifdef OTA
 HTTPUpdateServer httpUpdater;
@@ -216,7 +225,15 @@ void loop() {
         trimBuffer(readBuf_DE, sendLen, "Serial_DE");
 
         // Broadcast to Serial interfaces
-        Serial_BLE.write(readBuf_DE, sendLen);
+        if (Serial_BLE.availableForWrite() > sendLen) {
+          Serial_BLE.write(readBuf_DE, sendLen);
+        } else {
+          // Need to check for this due to flow control.  
+          // (Mk3b board has a bug where we are pulling down RTS instad of CTS
+          //  to fight the FTDI weak pullup during reset. :( So we need to be careful not
+          // to block 
+          Serial_USB.println("WARNING: BLE send buffer full");
+        }
         Serial_USB.write(readBuf_DE, sendLen);
 
 #ifdef TCP
@@ -252,6 +269,8 @@ void loop() {
 
         // Send to DE
         Serial_DE.write(readBuf_BLE, sendLen);
+        Serial_USB.print("   BLE: ");
+        Serial_USB.write(readBuf_BLE, sendLen);
       }
     }
   }
