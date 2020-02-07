@@ -159,6 +159,7 @@ void setup() {
     Serial_USB.begin(UART_BAUD);
     Serial_DE.begin(UART_BAUD, SERIAL_PARAM, SERIAL_DE_RX_PIN, SERIAL_DE_TX_PIN);
     Serial_BLE.begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
+    gpio_pullup_en((gpio_num_t)SERIAL_BLE_RX_PIN);  // suppress noise if BLE not attached
 
     /******* Wifi initialization ***********/
 #ifdef WIFI
@@ -195,10 +196,9 @@ void setup() {
       Serial_USB.println("BLE HW flow control enabled");
       uart_set_hw_flow_ctrl(SERIAL_BLE_UART_NUM, UART_HW_FLOWCTRL_CTS_RTS, 0);
       uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
-      // gpio_pulldown_en((gpio_num_t)SERIAL_BLE_CTS_PIN);  // this helps but is not seemigng to work
+      gpio_pulldown_en((gpio_num_t)SERIAL_BLE_CTS_PIN);  // this helps but is inconsistent. (not strong enough vs FTDI reset pullup) 
     }
 
-    delay(10);
     Serial_USB.println("Plucky initialization completed.");
 }
 
@@ -262,21 +262,39 @@ void loop() {
 
         // Broadcast to Serial interfaces
 
-        // Check: is BLE writeable?  (Need to check due to flow control.)
-        // Sad story: Mk3b board has a bug where it pulls down RTSB instad of CTSB -- dumb. :( 
-        // (Pulldown was intended to counteract the FTDI weak-pullup on CTS during reset.  
-        // As a result, the entire loop will block on write just because BLE board is not installed.  
-        // Note: I think the ESP32 HardwareSerial writebuffer is 127 bytes so this should be enough
-        // to conatin any DE1 message (32 bytes of data max, meaning 64 bytes of ascii)
+        Serial_USB.write(readBuf_DE, sendLen);
+
+        // BLE UART can support flow control (on by default, as the DE BLE adaptor uses it).  
+        // We do not want Plucky to EVER block on writing a DE message to any controller.
+        // So we must check for write-able-ness here (even though the DE BLE adaptor
+        // does not block for very long under normal operation).
+        // 
+        // Also, DAYBREAK Mk3b has a bug where it does not pull down CTSB.
+        // (Pulldown is required to counteract the FTDI2232D's weak-pullup during reset.)
+        // This would have the effect of blocking Plucky almost immediately if BLE is not installed
+        // (or CTSB otherwise being externally grounded).  
+        // BLE-free operation is probably not that exotic so blocking in that setup is Not Good.
+        //
+        // This code DOES work around that bug and prevent blocking in the bad-case scenario where:
+        //  - BLE is not installed 
+        //  - and CTSB is not grounded 
+        //  - and BLE UART flow control is enabled.
+        // 
+        // It is much better however to either externally ground CTSB if not needed, or to
+        // to disable flow control on the BLE UART via the webcofig protal.
+
         if (Serial_BLE.availableForWrite() > sendLen) {
+          // ESP32 HardwareSerial writebuffer appears to be 127 bytes by default so this should be enough
+          // to conatin any DE1 message (32 bytes of data max, meaning 64 bytes of ascii).
+          // It is configurable
           Serial_BLE.write(readBuf_DE, sendLen);
         } else {
           Serial_USB.println("WARNING: BLE send buffer full");
         }
-        Serial_USB.write(readBuf_DE, sendLen);
 
+
+        // Broadcast to TCP clients        
 #ifdef TCP
-        // Broadcast to TCP clients
         for (uint16_t i = 0; i < maxTcpClients; i ++) {
           if (TCPClient[i]) {
               TCPClient[i].write(readBuf_DE, sendLen);
@@ -287,6 +305,10 @@ void loop() {
       }
     }
   } 
+
+  // If we are receiving messages longer than the buffer, this prevents overflow and/or blocking
+  // Typically this only happens when noise is coming in on the BLE UART, or if baud rates
+  // are misconfigured, as the buffer size ought to be longer than the maximum DE1 does message length  
   if (readBufIndex_DE >= bufferSize) {
       Serial_USB.printf("WARNING: DE Read Buffer Overrun, purging.  Buffer Contents: ");
       Serial_USB.write(readBuf_DE, bufferSize);
