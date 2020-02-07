@@ -4,12 +4,15 @@
 
 /*************************  General Config *******************************/
 
+// Largest possible BLE message is ~20 bytes (packed binary)
+// 64 bytes of ascii hex.  Doubling that just because it doesn't amount to much.
+// Largest possible DE1 serial message therefore <64 bytes of ascii (representing 32 bytes packed) 
+// Not tight on memory at the moment.
 #define bufferSize 128
 #define DEBUG
 
 // Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "plucky-0.01"
-
+#define CONFIG_VERSION "plucky-0.03"
 
 /*************************  UART Config *******************************/
 
@@ -21,11 +24,18 @@
 #define SERIAL_DE_TX_PIN 17
 
 #define SERIAL_BLE_UART_NUM UART_NUM_2
-#define SERIAL_BLE_RX_PIN 13
+#define SERIAL_BLE_RX_PIN 13  // bummer, mk3b uses the LED pin (13) for RX.  This is because of Feather M0 compatibility.
 #define SERIAL_BLE_TX_PIN 27
-#define SERIAL_BLE_CTS_PIN 12
-#define SERIAL_BLE_RTS_PIN 33
 
+// Default setting for the BLE UART flow control.  
+// Note: this default WILL BE OVERRIDDEN if configured differently via the web config interface.  
+//
+// If the Decent BLE adaptor is installed, this HW flow control should be enabled (1),
+// otherwise data loss may occur.  
+// If the BLE adaptor header is empty, this should be disabled (0), or the system will lock up.
+// 
+// To enable flow control, set to 1.  To disable flow control, set to 0
+#define DEFAULT_BLE_FLOW_CONTROL 1
 
 /*************************  WiFi & TCP Config *******************************/
 #define WIFI
@@ -70,6 +80,25 @@ HardwareSerial Serial_BLE(SERIAL_BLE_UART_NUM);
 uint8_t readBuf_BLE[bufferSize];
 uint16_t readBufIndex_BLE = 0;
 
+
+#if DEFAULT_BLE_FLOW_CONTROL
+
+uart_hw_flowcontrol_t bleFlowControl = UART_HW_FLOWCTRL_CTS_RTS;
+#define BLE_FLOW_CONTROL_DEFAULT_STR "1"
+
+#else // !DEFAULT_BLE_FLOW_CONTROL 
+
+uart_hw_flowcontrol_t bleFlowControl = UART_HW_FLOWCTRL_DISABLE;
+#define BLE_FLOW_CONTROL_DEFAULT_STR "0"
+
+#endif // DEFAULT_BLE_FLOW_CONTROL 
+
+char bleFlowControlStr[2] = BLE_FLOW_CONTROL_DEFAULT_STR;
+// These pin assignments are not used if BLE flow control is off
+#define SERIAL_BLE_CTS_PIN 12
+#define SERIAL_BLE_RTS_PIN 33
+
+
 #ifdef WIFI
 #include <IotWebConf.h>
 
@@ -78,13 +107,9 @@ char machineName[33]; // initial name of the machine -- used as default AP SSID 
 DNSServer dnsServer;
 WebServer webServer(80);
 
-char intParamValue[NUMBER_LEN];
-
+// Configuration parameters
 IotWebConfSeparator separator_BLE = IotWebConfSeparator("BLE Serial Config");
-IotWebConfParameter intParam = IotWebConfParameter("Int param", "intParam", intParamValue, NUMBER_LEN, "number", "1..100", NULL, "min='1' max='100' step='1'");
-// -- We can add a legend to the separator
-IotWebConfParameter floatParam = IotWebConfParameter("Float param", "floatParam", floatParamValue, NUMBER_LEN, "number", "e.g. 23.4", NULL, "step='0.1'");
-
+IotWebConfParameter bleFlowControlParam = IotWebConfParameter("Enable BLE CTS/RTS Flow Control", "intParam", bleFlowControlStr, 1, "number", "0 or 1", BLE_FLOW_CONTROL_DEFAULT_STR, "Set to 1 if Decent BLE is installed, 0 in most other situations");
 
 #ifdef OTA
 HTTPUpdateServer httpUpdater;
@@ -133,10 +158,6 @@ void setup() {
     Serial_USB.begin(UART_BAUD);
     Serial_DE.begin(UART_BAUD, SERIAL_PARAM, SERIAL_DE_RX_PIN, SERIAL_DE_TX_PIN);
     Serial_BLE.begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
-    // HW flow contol for the BLE adaptor.
-    // https://github.com/espressif/arduino-esp32/blob/master/tools/sdk/include/driver/driver/uart.h
-    uart_set_hw_flow_ctrl(SERIAL_BLE_UART_NUM, UART_HW_FLOWCTRL_CTS_RTS, 0);
-    uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
 
     /******* Wifi initialization ***********/
 #ifdef WIFI
@@ -148,6 +169,10 @@ void setup() {
 #ifdef OTA
     iotWebConf->setupUpdateServer(&httpUpdater);
 #endif
+
+    iotWebConf->addParameter(&separator_BLE);
+    iotWebConf->addParameter(&bleFlowControlParam);
+
     iotWebConf->init();
 
     // -- Set up required URL handlers on the web server.
@@ -161,6 +186,12 @@ void setup() {
     Serial.println(WiFi.localIP());
 
 #endif // WIFI
+
+    /***** Flow Control for BLE *******/
+    if (strcmp(bleFlowControlStr, "1")) {
+      uart_set_hw_flow_ctrl(SERIAL_BLE_UART_NUM, UART_HW_FLOWCTRL_CTS_RTS, 0);
+      uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
+    } 
 
     delay(10);
     Serial_USB.println("Plucky initialization completed.");
@@ -225,13 +256,17 @@ void loop() {
         trimBuffer(readBuf_DE, sendLen, "Serial_DE");
 
         // Broadcast to Serial interfaces
+
+          // Need to check for this due to flow control.  
+          // Mk3b board has a bug where we are pulling down RTS instad of CTS -- dumb.  Intended
+          // to fight the FTDI weak pullup on CTS during reset. :( 
+          // Anyway we need to be careful not to block the entire loop on this write just because BLE
+          // board is not installed.  
+          // Note I think the ESP32 HardwareSerial writebuffer is 127 bytes so this should be enough
+          // to conatin any DE1 message (32 bytes of data max, meaning 64 bytes of ascii)
         if (Serial_BLE.availableForWrite() > sendLen) {
           Serial_BLE.write(readBuf_DE, sendLen);
         } else {
-          // Need to check for this due to flow control.  
-          // (Mk3b board has a bug where we are pulling down RTS instad of CTS
-          //  to fight the FTDI weak pullup during reset. :( So we need to be careful not
-          // to block 
           Serial_USB.println("WARNING: BLE send buffer full");
         }
         Serial_USB.write(readBuf_DE, sendLen);
