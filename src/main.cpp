@@ -190,11 +190,12 @@ void setup() {
 
     /***** Flow Control for BLE *******/
     if (atoi(bleFlowControlStr) == 0) {
-      Serial_USB.println("HW flow control for BLE not enabled.");
+      Serial_USB.println("BLE HW flow control disabled");
     } else {
-      Serial_USB.println("Enabling HW flow control for BLE");
+      Serial_USB.println("BLE HW flow control enabled");
       uart_set_hw_flow_ctrl(SERIAL_BLE_UART_NUM, UART_HW_FLOWCTRL_CTS_RTS, 0);
       uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
+      // gpio_pulldown_en((gpio_num_t)SERIAL_BLE_CTS_PIN);  // this helps but is not seemigng to work
     }
 
     delay(10);
