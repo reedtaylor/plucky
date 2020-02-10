@@ -370,7 +370,7 @@ void loop() {
         }
       }
     }
-    if (readBufIndex_USB >= bufferSize) {
+    if (readBufIndex_TCP[i] >= bufferSize) {
       Serial_USB.printf("WARNING: BLE Read Buffer Overrun.  Buffer Contents: ");
       Serial_USB.write(readBuf_USB, bufferSize);
       Serial_USB.printf("\n");
