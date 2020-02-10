@@ -64,8 +64,6 @@ bool PluckyInterfaceGroup::availableForWrite(size_t len=0) {
         }
     }
     return false;
-
-
 }
 
 bool PluckyInterfaceGroup::write(const uint8_t *buf, size_t size) {

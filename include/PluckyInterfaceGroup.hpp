@@ -11,10 +11,10 @@ public:
 
   void begin();
   void end();
-  int available();
-  int readAll();
+  bool available();
+  bool readAll();
   bool availableForWrite(size_t len=0);
-  size_t writeAll(const uint8_t *buf, size_t size);
+  bool writeAll(const uint8_t *buf, size_t size);
 
   operator bool;
 

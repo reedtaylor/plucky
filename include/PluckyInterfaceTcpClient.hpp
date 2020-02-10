@@ -2,6 +2,7 @@
 #define _PLUCKY_INTERFACE_TCP_CLIENT_HPP_
 
 #include <WifiServer.h>
+#include <WifiClient.h>
 
 #include "PluckyInterface.hpp"
 

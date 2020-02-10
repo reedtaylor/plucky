@@ -9,7 +9,6 @@
 // IotWebConf for configuration portal
 #include "PluckyWebConfig.hpp"
 
-
 class PluckyWebServer {
 public:
   PluckyWebServer();
