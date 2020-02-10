@@ -8,7 +8,7 @@
 
 class PluckyInterfaceTcpClient : public PluckyInterface {
 public:
-  PluckyInterfaceTcpClient();
+  PluckyInterfaceTcpClient(WiFiClient *client);
   void doInit();
   void doLoop();
 
@@ -19,12 +19,17 @@ public:
   bool availableForWrite(size_t len=0);
   bool writeAll(const uint8_t *buf, size_t size);
 
-  operator bool;
+    operator bool()
+    {
+        return _tcpClient->connected();
+    }
 
 private:
-  uint8_t _num_interfaces;
-  PluckyInterface **_interfaces;
-}
+  WiFiClient *_tcpClient;
+  uint8_t _readBuf[READ_BUFFER_SIZE];
+  uint16_t _readBufIndex;
+  char _interfaceName[32];
+};
 
 
 #endif // _PLUCKY_INTERFACE_TCP_CLIENT_HPP_

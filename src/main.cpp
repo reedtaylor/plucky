@@ -39,29 +39,25 @@ void setup() {
 }
 
 void loop() {
-#ifdef WIFI
-  iotWebConf->doLoop();
+
+  webServer->doLoop();
+  de1Serial->doLoop();
+  controllers.doLoop()
 
   if (WiFi.status() != WL_CONNECTED) {
-#ifdef TCP
     if (TCPServer) {
       Serial_USB.println("Stopping TCP server");
 
       TCPServer.end();
     }
-#endif // TCP
   } else {
-#ifdef TCP
     if (!TCPServer) {
       TCPServer.begin(); // start TCP server
       TCPServer.setNoDelay(true);
       Serial_USB.println("TCP server enabled");
     }
-#endif // TCP
   }
-#endif // WIFI
 
-#ifdef TCP
   // Check for new incoming connections
   if (TCPServer && TCPServer.hasClient()) { // find free/disconnected spot
      Serial_USB.print("New TCP client ");
@@ -82,7 +78,6 @@ void loop() {
         }
       }
   }     
-#endif // TCP
 
   // Receive DE1 messages
   if (Serial_DE.available()) {
@@ -207,33 +202,9 @@ void loop() {
   }
 
 
-#ifdef TCP
   // Bridge TCP messages to DE1
   for (byte i = 0; i < maxTcpClients; i ++) {
     if (TCPClient[i] && TCPClient[i].available()) {
-      while (TCPClient[i].available() && (readBufIndex_TCP[i] < bufferSize)) {
-        readBuf_TCP[i][readBufIndex_TCP[i]] = TCPClient[i].read();
-        readBufIndex_TCP[i]++;
-        if (readBuf_TCP[i][readBufIndex_TCP[i] - 1] == '\n') { 
-          // let's be super deliberate about resetting the readBufIndex lest we forget to do it below
-          uint16_t sendLen = readBufIndex_TCP[i];
-          readBufIndex_TCP[i] = 0;
-
-          char interfaceName[32];
-          sprintf (interfaceName, "TCP[%d]", i);
-          trimBuffer(readBuf_TCP[i], sendLen, interfaceName);
-
-          // Send to DE
-          Serial_DE.write(readBuf_TCP[i], sendLen);
-        }
-      }
-    }
-    if (readBufIndex_USB >= bufferSize) {
-      Serial_USB.printf("WARNING: BLE Read Buffer Overrun.  Buffer Contents: ");
-      Serial_USB.write(readBuf_USB, bufferSize);
-      Serial_USB.printf("\n");
-      readBufIndex_TCP[i] = 0;
-    } 
+      // do the read & send
   } 
-#endif // TCP
 }

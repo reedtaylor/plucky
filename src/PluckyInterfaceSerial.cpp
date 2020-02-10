@@ -1,17 +1,26 @@
 #include <driver/uart.h>
+#include <HardwareSerial.h>
+#include <ArduinoSimpleLogging.h>
 
 #include "PluckyInterfaceSerial.hpp"
+#include "PluckyInterfaceGroup.hpp"
+#include "config.hpp"
 
 PluckyInterfaceSerial::PluckyInterfaceSerial(int uart_nr) {
     _uart_nr = uart_nr;
+    _readBufIndex = 0;
     if (uart_nr == SERIAL_USB_UART_NUM) {
         // We are capturing the (open, global, probably USB) terminal Serial so just grab it
         _serial = &Serial;
+        sprintf(_interfaceName, "Serial_USB");
     } else {
         _serial = new HardwareSerial(uart_nr);
+        if (_uart_nr == SERIAL_DE_UART_NUM) {
+            sprintf(_interfaceName, "Serial_DE");
+        } else {
+            sprintf(_interfaceName, "Serial_BLE");
+        }
     }
-
-    _readBufIndex = 0;
 }
 
 /*
@@ -20,37 +29,90 @@ void PluckyInterfaceSerial::doInit() {
 }
 */
 
-void PluckyInterfaceSerial::doInit(bool bleFlowControlEnable = DEFAULT_BLE_FLOW_CONTROL) {
+void PluckyInterfaceSerial::doInit() {
+    this->begin();
+}
 
+void PluckyInterfaceSerial::doLoop() {
+
+}
+
+void PluckyInterfaceSerial::begin() {
     if (_uart_nr == SERIAL_USB_UART_NUM) {
-        _serial.begin(UART_BAUD);
+        _serial->begin(UART_BAUD);
     } else if (_uart_nr == SERIAL_DE_UART_NUM) {
-        _serial.begin(UART_BAUD, SERIAL_PARAM, SERIAL_DE_RX_PIN, SERIAL_DE_TX_PIN);
+        _serial->begin(UART_BAUD, SERIAL_PARAM, SERIAL_DE_RX_PIN, SERIAL_DE_TX_PIN);
         gpio_pullup_en((gpio_num_t)SERIAL_DE_RX_PIN);  // suppress noise if DE not attached
-    } else if (_uart_nr) == SERIAL_BLE_UART_NUM) {
-        _serial.begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
+    } else if (_uart_nr == SERIAL_BLE_UART_NUM) {
+        _serial->begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
         gpio_pullup_en((gpio_num_t)SERIAL_BLE_RX_PIN);  // suppress noise if BLE not attached
 
-        if (bleFlowControlEnable) {
-            Serial_USB.println("BLE HW flow control disabled");
+        if (atoi(userSettingStr_bleFlowControl) == 0) {
+            Logger.info.println("BLE HW flow control disabled");
         } else {
-            Serial_USB.println("BLE HW flow control enabled");
+            Logger.info.println("BLE HW flow control enabled");
             uart_set_hw_flow_ctrl(SERIAL_BLE_UART_NUM, UART_HW_FLOWCTRL_CTS_RTS, 0);
             uart_set_pin(SERIAL_BLE_UART_NUM, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, SERIAL_BLE_RTS_PIN, SERIAL_BLE_CTS_PIN);
             gpio_pulldown_en((gpio_num_t)SERIAL_BLE_CTS_PIN);  // this helps but is inconsistent. (not strong enough vs FTDI reset pullup) 
         }
     }
-
-
-
 }
-void PluckyInterfaceSerial::doLoop();
 
-void PluckyInterfaceSerial::begin();
-void PluckyInterfaceSerial::end();
-bool PluckyInterfaceSerial::available();
-bool PluckyInterfaceSerial::readAll();
-bool PluckyInterfaceSerial::availableForWrite(size_t len=0);
-bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size);
+void PluckyInterfaceSerial::end() {
+    _serial->end();
+}
 
-operator PluckyInterfaceSerial::bool;
+bool PluckyInterfaceSerial::available() {
+    return _serial->available();
+}
+
+bool PluckyInterfaceSerial::readAll() {
+    while (_serial->available() && _readBufIndex < READ_BUFFER_SIZE) {
+        _readBuf[_readBufIndex] = _serial->read();
+        _readBufIndex++;
+        if (_readBuf[_readBufIndex - 1] == '\n') { 
+            uint16_t sendLen = _readBufIndex;
+            _readBufIndex = 0;
+
+            trimBuffer(_readBuf, sendLen, _interfaceName);
+
+            if (_uart_nr == SERIAL_DE_UART_NUM) {
+                // Broeacast to all interfaces
+                extern PluckyInterfaceGroup controllers;
+                controllers.writeAll(_readBuf, sendLen);
+            } else {
+                // Send to DE
+                extern PluckyInterfaceSerial *de1Serial;
+                de1Serial->writeAll(_readBuf, sendLen);
+            }
+        }
+    }
+}
+
+bool PluckyInterfaceSerial::availableForWrite(size_t len=0) {
+    return _serial->availableForWrite();
+}
+
+bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size) {
+    if (_serial->availableForWrite() > size) {
+        // This if statement is used to prevent blocking in a case where (e.g. HW flow control) is causing
+        // a UART to overflow its buffers.  The behavior is to drop writes and log warnings.  
+        // ESP32 HardwareSerial writebuffer appears to be 127 bytes by default so this should be enough
+        // to conatin any DE1 message (32 bytes of data max, meaning 64 bytes of ascii).
+        // It is configurable via some deep uart calls, probably not necessary
+        // 
+        // Note: DAYBREAK Mk3b has a bug where it does not pull down CTSB.
+        // (Pulldown is required to counteract the FTDI2232D's weak-pullup during reset.)
+        // This would have the effect of blocking Plucky almost immediately if BLE is not installed
+        // (or CTSB otherwise being externally grounded).  
+        // BLE-free operation is probably not that exotic so blocking in that setup is Not Good.
+        //
+        // This code DOES work around that bug and prevent blocking in the bad-case scenario where:
+        //  - BLE is not installed 
+        //  - and CTSB is not grounded 
+        //  - and BLE UART flow control is enabled.
+        _serial->write(_readBuf, size);
+    } else {
+        Logger.warning.printf("WARNING: %s send buffer full", _interfaceName);
+    }
+}

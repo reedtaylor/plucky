@@ -26,8 +26,6 @@ public:
 private:
   WiFiServer *TCPServer; // (tcpPort, maxTcpClients)
   WiFiClient TCPClient[maxTcpClients];
-  uint8_t readBuf_TCP[maxTcpClients][bufferSize];
-  uint16_t readBufIndex_TCP[maxTcpClients];
 }
 
 
