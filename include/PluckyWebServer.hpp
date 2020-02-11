@@ -17,7 +17,7 @@ public:
   void doLoop();
 
 private:
-  WebServer *_webServer;
+  WebServer _webServer(80);
   PluckyWebConfig *_webConfig;
 
   // Helper functions

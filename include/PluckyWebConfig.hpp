@@ -23,10 +23,10 @@ public:
 private:
   char _machineName[33]; // initial name of the machine -- used as default AP SSID etc.
 
-  IotWebConf *_iotWebConf;
-  DNSServer *_dnsServer;
+  IotWebConf _iotWebConf;
+  DNSServer _dnsServer;
   WebServer *_webServer;
-  HTTPUpdateServer *_updateServer;
+  HTTPUpdateServer _updateServer;
 
   void PluckyWebConfig::wifiConnectedHandler();
 }

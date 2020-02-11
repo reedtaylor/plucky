@@ -5,7 +5,7 @@
 
 class PluckyInterfaceGroup : public PluckyInterface {
 public:
-  PluckyInterfaceGroup(uint8_t num_interfaces);
+  PluckyInterfaceGroup(uint8_t numInterfaces);
   void doInit();
   void doLoop();
 
@@ -16,15 +16,24 @@ public:
   bool availableForWrite(size_t len=0);
   bool writeAll(const uint8_t *buf, size_t size);
 
-  operator bool;
+  uint8_t getNumInterfaces();
 
-  PluckyInterface operator [](int i) const {return _interfaces[i];}
-  PluckyInterface & operator [](int i) {return _interfaces[i];}
+  operator bool() {
+    for (uint16_t i=0; i<_num_interfaces; i++) {
+        if (_interfaces[i]) {
+            return true;
+        }
+    }
+    return false;
+  }
 
-private:
-  uint8_t _num_interfaces;
+  PluckyInterface * operator [](int i) const {return _interfaces[i];}
+  PluckyInterface *& operator [](int i) {return _interfaces[i];}
+
+protected:
+  uint8_t _numInterfaces;
   PluckyInterface **_interfaces;
-}
+};
 
 
 #endif // _PLUCKY_INTERFACE_GROUP_HPP_

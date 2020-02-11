@@ -2,6 +2,7 @@
 #define _PLUCKY_INTERFACE_SERIAL_HPP_
 
 #include <HardwareSerial.h>
+#include <driver/uart.h>
 #include <ArduinoSimpleLogging.h>
 
 #include "PluckyInterface.hpp"
@@ -10,7 +11,7 @@
 #define UART_BAUD 115200
 #define SERIAL_PARAM SERIAL_8N1
 
-#define  SERIAL_USB_UART_NUM UART_NUM_0
+#define SERIAL_USB_UART_NUM UART_NUM_0
 
 #define SERIAL_DE_UART_NUM UART_NUM_1
 #define SERIAL_DE_RX_PIN 16
@@ -29,12 +30,12 @@ public:
   void doInit();
   void doLoop();
 
-  void begin() = 0;
-  void end() = 0;
-  bool available() = 0;
-  bool readAll() = 0;
-  bool availableForWrite(size_t len=0) = 0;
-  bool writeAll(const uint8_t *buf, size_t size) = 0;
+  void begin();
+  void end();
+  bool available();
+  bool readAll();
+  bool availableForWrite(size_t len=0);
+  bool writeAll(const uint8_t *buf, size_t size);
 
 private:
   HardwareSerial *_serial;
@@ -46,4 +47,4 @@ private:
 };
 
 
-#endif // _PLUCKY_INTERFACE_HPP_
+#endif // _PLUCKY_INTERFACE_SERIAL_HPP_

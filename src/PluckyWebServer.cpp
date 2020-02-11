@@ -4,8 +4,7 @@
 #include "PluckyWebServer.hpp"
 
 PluckyWebServer::PluckyWebServer() {
-  _webServer = new WebServer(80);
-  _webConfig = new PluckyWebConfig(this);
+  _webConfig = new PluckyWebConfig(&(_webServer));
 }
 
 String getContentType(String filename) {

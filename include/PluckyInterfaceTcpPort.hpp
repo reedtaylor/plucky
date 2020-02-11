@@ -2,6 +2,9 @@
 #define _PLUCKY_INTERFACE_TCP_PORT_HPP_
 
 #include <WiFiServer.h>
+#include <WiFiClient.h>
+
+WiFiServer blah();
 
 #include "PluckyInterfaceGroup.hpp"
 #include "PluckyInterfaceTcpClient.hpp"
@@ -10,23 +13,29 @@
 
 class PluckyInterfaceTcpPort : public PluckyInterfaceGroup {
 public:
-  PluckyInterfaceTcpPort(int uart_nr);
-  void doInit();
+  PluckyInterfaceTcpPort(uint16_t port);
   void doLoop();
 
   void begin();
   void end();
-  int available();
-  int readAll();
+  bool available();
+  bool readAll();
   bool availableForWrite(size_t len=0);
   size_t write(const uint8_t *buf, size_t size);
 
-  operator bool;
+  operator bool() {
+    for (int i=0; i<TCP_MAX_CLIENTS; i++) {
+      if (_tcpClients[i]) {
+          return true;
+      }
+    }
+    return false;
+  }
 
-private:
-  WiFiServer *TCPServer; // (tcpPort, maxTcpClients)
-  WiFiClient TCPClient[maxTcpClients];
-}
+protected:
+  uint16_t _tcpPort;
+  WiFiServer _tcpServer;
+};
 
 
 #endif // _PLUCKY_INTERFACE_TCP_PORT_HPP_

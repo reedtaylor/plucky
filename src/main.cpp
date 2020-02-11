@@ -20,20 +20,16 @@ PluckyInterfaceSerial *de1Serial;
 // 2 = TCP Port (a nested group that includes any/all open sockets)
 #define NUM_CONTROLLERS 3
 PluckyInterfaceGroup controllers(NUM_CONTROLLERS);
+PluckyWebServer webServer;
+PluckyInterfaceSerial de1Serial(SERIAL_DE_UART_NUM);
 
 void setup() {
-  de1Serial = new PluckyInterfaceSerial(SERIAL_DE_UART_NUM); 
-  webServer = new PluckyWebServer();
-
   controllers[0] = new PluckyInterfaceSerial(SERIAL_USB_UART_NUM);
   controllers[1] = new PluckyInterfaceSerial(SERIAL_BLE_UART_NUM);
-  controllers[2] = new PluckyInterfaceTcpPort(TCP_PORT);
+  controllers[2] = new PluckyInterfaceTcpPort(atoi(userSettingStr_tcpPort));
+  controllers.doInit();
 
-  for (i=0; i<NUM_CONTROLLERS; i++) {
-    controllers[i].doInit();
-  }
-
-  webServer->doInit();
+  webServer.doInit();
 
   Logger.info.println("Plucky initialization completed.");
 }
@@ -43,41 +39,6 @@ void loop() {
   webServer->doLoop();
   de1Serial->doLoop();
   controllers.doLoop()
-
-  if (WiFi.status() != WL_CONNECTED) {
-    if (TCPServer) {
-      Serial_USB.println("Stopping TCP server");
-
-      TCPServer.end();
-    }
-  } else {
-    if (!TCPServer) {
-      TCPServer.begin(); // start TCP server
-      TCPServer.setNoDelay(true);
-      Serial_USB.println("TCP server enabled");
-    }
-  }
-
-  // Check for new incoming connections
-  if (TCPServer && TCPServer.hasClient()) { // find free/disconnected spot
-     Serial_USB.print("New TCP client ");
-     for (uint16_t i = 0; i < maxTcpClients; i ++) {
-        if (!TCPClient[i]) {
-          TCPClient [i] = TCPServer.available();
-          readBufIndex_TCP[i] = 0;
-          Serial_USB.print(" in slot: ");
-          Serial_USB.println(i);
-          break;
-        } else {
-          Serial_USB.print(".");
-        }
-        if (i == maxTcpClients - 1) { // no free/disconnected spot so reject it
-            WiFiClient TmpserverClient = TCPServer.available();
-            TmpserverClient.stop();
-            Serial_USB.println("Too many TCP clients; new connection dropped");
-        }
-      }
-  }     
 
   // Receive DE1 messages
   if (Serial_DE.available()) {
