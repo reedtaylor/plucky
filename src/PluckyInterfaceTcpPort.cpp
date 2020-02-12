@@ -46,8 +46,6 @@ void PluckyInterfaceTcpPort::doLoop() {
         }
     }     
 
-
-
     for (uint16_t i=0; i<_numInterfaces; i++) {
         _interfaces[i]->doLoop();
     }
@@ -58,6 +56,7 @@ void PluckyInterfaceTcpPort::begin() {
     _tcpServer.setNoDelay(true);
     Logger.info.println("TCP server enabled");
 }
+
 void PluckyInterfaceTcpPort::end(){
     Logger.info.println("Stopping TCP server");
     _tcpServer.end();
@@ -103,9 +102,5 @@ bool PluckyInterfaceTcpPort::writeAll(const uint8_t *buf, size_t size) {
         didWrite = (didWrite || _interfaces[i]->writeAll(buf, size));
     }
     return didWrite;
-}
-
-uint8_t PluckyInterfaceTcpPort::getNumInterfaces() {
-    return _numInterfaces;
 }
 

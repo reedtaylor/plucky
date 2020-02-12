@@ -23,27 +23,27 @@ PluckyInterfaceSerial::PluckyInterfaceSerial(int uart_nr) {
     }
 }
 
-/*
-void PluckyInterfaceSerial::doInit() {
-    doInit(DEFAULT_BLE_FLOW_CONTROL);
-}
-*/
 
 void PluckyInterfaceSerial::doInit() {
-    this->begin();
+    begin();
+    _readBufIndex = 0;
 }
 
 void PluckyInterfaceSerial::doLoop() {
-
+    readAll();
 }
 
 void PluckyInterfaceSerial::begin() {
+    _readBufIndex = 0;
     if (_uart_nr == SERIAL_USB_UART_NUM) {
+        sprintf(_interfaceName, "Serial_USB");
         _serial->begin(UART_BAUD);
     } else if (_uart_nr == SERIAL_DE_UART_NUM) {
+        sprintf(_interfaceName, "Serial_DE1");
         _serial->begin(UART_BAUD, SERIAL_PARAM, SERIAL_DE_RX_PIN, SERIAL_DE_TX_PIN);
         gpio_pullup_en((gpio_num_t)SERIAL_DE_RX_PIN);  // suppress noise if DE not attached
     } else if (_uart_nr == SERIAL_BLE_UART_NUM) {
+        sprintf(_interfaceName, "Serial_BLE");
         _serial->begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
         gpio_pullup_en((gpio_num_t)SERIAL_BLE_RX_PIN);  // suppress noise if BLE not attached
 
@@ -60,6 +60,7 @@ void PluckyInterfaceSerial::begin() {
 
 void PluckyInterfaceSerial::end() {
     _serial->end();
+    _readBufIndex = 0;
 }
 
 bool PluckyInterfaceSerial::available() {
@@ -74,7 +75,8 @@ bool PluckyInterfaceSerial::readAll() {
             uint16_t sendLen = _readBufIndex;
             _readBufIndex = 0;
 
-            trimBuffer(_readBuf, sendLen, _interfaceName);
+            trimBuffer(_readBuf, sendLen);
+            debugHandler(_readBuf, sendLen);
 
             if (_uart_nr == SERIAL_DE_UART_NUM) {
                 // Broeacast to all interfaces
@@ -82,12 +84,22 @@ bool PluckyInterfaceSerial::readAll() {
                 controllers.writeAll(_readBuf, sendLen);
             } else {
                 // Send to DE
-                extern PluckyInterfaceSerial *de1Serial;
-                de1Serial->writeAll(_readBuf, sendLen);
+                extern PluckyInterfaceSerial de1Serial;
+                de1Serial.writeAll(_readBuf, sendLen);
             }
         }
     }
-}
+    // If we are receiving messages longer than the buffer, this prevents overflow and/or blocking
+    // Typically this only happens when noise is coming in on the BLE UART, or if baud rates    
+    // are misconfigured, as the buffer size ought to be longer than the maximum DE1 does message length  
+    if (_readBufIndex >= READ_BUFFER_SIZE) {
+        Logger.warning.printf("WARNING: Read Buffer Overrun on interface %s -- purging.\n", _interfaceName);
+        Logger.debug.print("    Buffer contents: ");
+        Logger.debug.write(_readBuf, READ_BUFFER_SIZE);
+        Logger.debug.println();
+        _readBufIndex = 0;
+    }
+}   
 
 bool PluckyInterfaceSerial::availableForWrite(size_t len=0) {
     return _serial->availableForWrite();

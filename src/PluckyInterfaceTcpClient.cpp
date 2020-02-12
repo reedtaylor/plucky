@@ -8,15 +8,16 @@ PluckyInterfaceTcpClient::PluckyInterfaceTcpClient():_readBufIndex(0){
 }
 
 void PluckyInterfaceTcpClient::doInit() {
-
+  _readBufIndex = 0;
+  begin();
 }
 
 void PluckyInterfaceTcpClient::doLoop() {
-
+  readAll();
 }
 
 void PluckyInterfaceTcpClient::begin() {
-
+  _readBufIndex = 0;
 }
 
 void PluckyInterfaceTcpClient::end() {
@@ -30,29 +31,31 @@ bool PluckyInterfaceTcpClient::available() {
 
 bool PluckyInterfaceTcpClient::readAll() {
   if (_tcpClient.available()) {
-      while (_tcpClient.available() && (_readBufIndex < READ_BUFFER_SIZE)) {
-        _readBuf[_readBufIndex] = _tcpClient.read();
-        _readBufIndex++;
-        if (_readBuf[_readBufIndex - 1] == '\n') { 
-          uint16_t sendLen = readBufIndex;
-          readBufIndex = 0;
+    while (_tcpClient.available() && (_readBufIndex < READ_BUFFER_SIZE)) {
+      _readBuf[_readBufIndex] = _tcpClient.read();
+      _readBufIndex++;
+      if (_readBuf[_readBufIndex - 1] == '\n') { 
+        uint16_t sendLen = _readBufIndex;
+        _readBufIndex = 0;
 
-          trimBuffer(_readBuf, sendLen, _interfaceName);
+        trimBuffer(_readBuf, sendLen);
+        debugHandler(_readBuf, sendLen);
 
-          // Send to DE
-          extern PluckyInterfaceSerial de1Serial;
-          de1Serial.writeAll(_readBuf, sendLen);
-        }
+        // Send to DE
+        extern PluckyInterfaceSerial de1Serial;
+        de1Serial.writeAll(_readBuf, sendLen);
       }
     }
-    if (_readBufIndex >= READ_BUFFER_SIZE) {
-      Logger.warning.print("WARNING: BLE Read Buffer Overrun.  Buffer Contents: ");
-      Logger.warning.write(_readBuf, _bufferSize);
-      Logger.warning.println();
-      _readBufIndex = 0;
-    } 
-
+  }
+  if (_readBufIndex >= READ_BUFFER_SIZE) {
+    Logger.warning.printf("WARNING: Read Buffer Overrun on interface %s -- purging.\n", _interfaceName);
+    Logger.debug.print("    Buffer contents: ");
+    Logger.debug.write(_readBuf, READ_BUFFER_SIZE);
+    Logger.debug.println();
+    _readBufIndex = 0;
+  } 
 }
+
 
 bool PluckyInterfaceTcpClient::availableForWrite(size_t len=0) {
   return _tcpClient.connected();

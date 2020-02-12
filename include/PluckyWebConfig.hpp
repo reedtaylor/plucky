@@ -1,5 +1,5 @@
-#ifndef _PLUCKY_WEB_CONFIG_HPP
-#define _PLUCKY_WEB_CONFIG_HPP
+#ifndef _PLUCKY_WEB_CONFIG_HPP_
+#define _PLUCKY_WEB_CONFIG_HPP_
 
 #define IOTWEBCONF_DEBUG_TO_SERIAL
 #define IOTWEBCONF_DEBUG_PWD_TO_SERIAL
@@ -13,22 +13,29 @@
 
 class PluckyWebConfig {
 public:
-  PluckyWebConfig(WebServer *webServer);
+  PluckyWebConfig(WebServer *_ws);
 
   void doInit();
   void doLoop();
 
-  void handleConfig();
-
-private:
+  // handlers
+  static void handleConfig_CB();
+  static void wifiConnectedHandler_CB();
+  static void handleNotFound_CB();
+  
+protected:
   char _machineName[33]; // initial name of the machine -- used as default AP SSID etc.
 
-  IotWebConf _iotWebConf;
+  IotWebConf *_iotWebConf;
   DNSServer _dnsServer;
-  WebServer *_webServer;
   HTTPUpdateServer _updateServer;
 
-  void PluckyWebConfig::wifiConnectedHandler();
-}
 
-#endif
+  void _wifiConnectedHandler();
+  static void _handleNotFound();
+
+  friend class PluckyWebServer;
+
+};
+
+#endif // _PLUCKY_WEB_CONFIG_HPP_

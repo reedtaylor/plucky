@@ -11,22 +11,28 @@
 
 class PluckyWebServer {
 public:
-  PluckyWebServer();
+  PluckyWebServer(int port=80);
 
   void doInit();
   void doLoop();
 
-private:
-  WebServer _webServer(80);
+  // Handler wrappers
+  static void handleNotFound_CB();
+
+
+protected:
+  WebServer *_ws;
   PluckyWebConfig *_webConfig;
 
   // Helper functions
   String _getContentType(String filename);
   bool _webPathExists(String path);
 
-  // Handler functions
-  bool handleFileRead(String path);
+  // Handlers
+  bool _handleFileRead(String path);
+  void _handleNotFound();
 
+  friend class PluckyWebConfig;
 };
 
 #endif // _PLUCKY_WEB_SERVER_HPP

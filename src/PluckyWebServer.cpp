@@ -1,14 +1,17 @@
 #include <WebServer.h>
 #include <ArduinoSimpleLogging.h>
+#include <WebServer.h>
 
 #include "PluckyWebServer.hpp"
+extern PluckyWebServer webServer;
 
-PluckyWebServer::PluckyWebServer() {
-  _webConfig = new PluckyWebConfig(&(_webServer));
+PluckyWebServer::PluckyWebServer(int port=80) {
+  _ws = new WebServer(port);
+  _webConfig = new PluckyWebConfig(_ws);
 }
 
-String getContentType(String filename) {
-  if (_webServer.hasArg("download")) {
+String PluckyWebServer::_getContentType(String filename) {
+  if (_ws->hasArg("download")) {
     return "application/octet-stream";
   } else if (filename.endsWith(".htm")) {
     return "text/html";
@@ -38,9 +41,9 @@ String getContentType(String filename) {
   return "text/plain";
 }
 
-bool webPathExists(String path){
+bool PluckyWebServer::_webPathExists(String path){
   bool exists = false;
-  File file = FILESYSTEM.open(path, "r");
+  File file = SPIFFS.open(path, "r");
   if(!file.isDirectory()){
     exists = true;
   }
@@ -48,40 +51,50 @@ bool webPathExists(String path){
   return exists;
 }
 
-bool handleFileRead(String path) {
+bool PluckyWebServer::_handleFileRead(String path) {
 //  DBG_OUTPUT_PORT.println("handleFileRead: " + path);
   if (path.endsWith("/")) {
     path += "index.htm";
   }
-  String contentType = getContentType(path);
+  String contentType = _getContentType(path);
   String pathWithGz = path + ".gz";
-  if (webPathExists(pathWithGz) || webPathExists(path)) {
-    if (webPathExists(pathWithGz)) {
+  if (_webPathExists(pathWithGz) || _webPathExists(path)) {
+    if (_webPathExists(pathWithGz)) {
       path += ".gz";
     }
     File file = SPIFFS.open(path, "r");
-    server.streamFile(file, contentType);
+    _ws->streamFile(file, contentType);
     file.close();
     return true;
   }
   return false;
 }
 
-PluckyWebServer::doInit() {
+void PluckyWebServer::doInit() {
   _webConfig->doInit();
 
   // URL handler for webconfig
-  webServer.on("/config", []{ _webConfig->handleConfig(); });
+  _ws->on("/config", PluckyWebConfig::handleConfig_CB);
 
   // URL Handler for everything else
   // - If the request matches a path/file in SPIFFS, that will get served
   // - Else pass it along to the webconfig so that it can check for captive portal
   //   situations and not-404 on those.  But 404 otherwise.  
-  webServer.onNotFound([]() {
-    if (!handleFileRead(webServer.uri())) {
-      iotWebConf->handleNotFound();
-    }
-  });
+  _ws->onNotFound(handleNotFound_CB);
+}
+
+void PluckyWebServer::doLoop() {
+  _webConfig->doLoop();
+}
+
+void PluckyWebServer::handleNotFound_CB() {
+  webServer._handleNotFound();
+}
+
+void PluckyWebServer::_handleNotFound() {
+  if (!_handleFileRead(_ws->uri())) {
+    _webConfig->_iotWebConf->handleNotFound();
+  }
 }
 
 /**

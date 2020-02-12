@@ -19,7 +19,7 @@ public:
   uint8_t getNumInterfaces();
 
   operator bool() {
-    for (uint16_t i=0; i<_num_interfaces; i++) {
+    for (uint16_t i=0; i<_numInterfaces; i++) {
         if (_interfaces[i]) {
             return true;
         }
