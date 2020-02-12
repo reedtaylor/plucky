@@ -37,7 +37,7 @@ bool PluckyInterfaceTcpClient::readAll() {
         uint16_t sendLen = _readBufIndex;
         _readBufIndex = 0;
 
-        trimBuffer(_readBuf, sendLen);
+        trimBuffer(_readBuf, sendLen, _interfaceName);
         debugHandler(_readBuf, sendLen);
 
         // Send to DE

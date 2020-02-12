@@ -36,6 +36,7 @@ protected:
   WiFiClient _tcpClient;
   uint8_t _readBuf[READ_BUFFER_SIZE];
   uint16_t _readBufIndex;
+  char _interfaceName[32];
 };
 
 

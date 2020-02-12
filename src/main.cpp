@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <ArduinoSimpleLogging.h>
-#include <esp_system.h>
 
 #include "PluckyWebServer.hpp"
 #include "PluckyInterfaceSerial.hpp"
@@ -8,10 +7,8 @@
 #include "PluckyInterfaceTcpPort.hpp"
 
 #include "config.hpp"
-char userSettingStr_bleFlowControl[USER_SETTING_INT_STR_LEN];
-char userSettingStr_tcpPort[USER_SETTING_INT_STR_LEN];
-
-
+char *userSettingStr_bleFlowControl;
+char *userSettingStr_tcpPort;
 
 // Web Server using SPIFFS and IotWebConfig
 PluckyWebServer webServer;
@@ -28,6 +25,8 @@ PluckyInterfaceSerial de1Serial(SERIAL_DE_UART_NUM);
 PluckyInterfaceGroup controllers(NUM_CONTROLLERS);
 
 void setup() {
+  userSettingStr_bleFlowControl = new char[USER_SETTING_INT_STR_LEN];
+  userSettingStr_tcpPort = new char[USER_SETTING_INT_STR_LEN];
   sprintf(userSettingStr_bleFlowControl, DEFAULT_BLE_FLOW_CONTROL);
   sprintf(userSettingStr_tcpPort, DEFAULT_TCP_PORT);
 
@@ -42,9 +41,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("hi");
   Logger.debug.printf("User string = %s\n", userSettingStr_bleFlowControl);
-  return;
   webServer.doLoop();
   de1Serial.doLoop();
   controllers.doLoop();
