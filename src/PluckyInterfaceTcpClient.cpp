@@ -57,7 +57,7 @@ bool PluckyInterfaceTcpClient::readAll() {
 }
 
 
-bool PluckyInterfaceTcpClient::availableForWrite(size_t len=0) {
+bool PluckyInterfaceTcpClient::availableForWrite(size_t len) {
   return _tcpClient.connected();
 }
 

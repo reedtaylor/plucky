@@ -51,7 +51,7 @@ bool PluckyInterfaceGroup::readAll() {
     return didRead;
 }
 
-bool PluckyInterfaceGroup::availableForWrite(size_t len=0) {
+bool PluckyInterfaceGroup::availableForWrite(size_t len) {
     // Note this simple loop biases our checking to the lower-index interfaces.
     // However because writeAll() visits and writes ALL interfaces in the group
     // (leaving it to the leaf interfaces to handle buffering, flushing, closing, etc)

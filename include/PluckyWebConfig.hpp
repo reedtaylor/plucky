@@ -7,6 +7,8 @@
 #include <IotWebConf.h>
 #include <DNSServer.h>
 
+class PluckyWebConfig;
+
 #include "PluckyInterface.hpp"
 #include "PluckyWebServer.hpp"
 #include "config.hpp"

@@ -2,15 +2,19 @@
 #define _PLUCKY_CONFIG_HPP_
 
 
-// Note that all global variables defined in this 
-// file with the prefix "userSettingStr_" are being
-// assigned DEFAULT values here.  These values 
-// can/will get overridden if the user changes them
-// via WebConfig.   
-// 
-// Doing it this way has the nice properties of working
-// cleanly if someone wants to disable web altogether.
+// Config values are set via defines here.  
+
+// There are some  global variables defined(extern) in this file with the prefix "userSettingStr_".
+// These string variables are being assigned DEFAULT values here (via the defines).  
+// These values  can/will get overridden if the user changes them via WebConfig.
+//  - To change the defaults, edit the #defines
+//  - To use the values, read the global strings 
+//  
+// Doing it this way has the nice property of both working via the webconfig UI but also
+// working cleanly if e.g. someone wants to disable web altogether, including the webconfig.
+// In that case, the define'd default values will prevail. 
 //
+
 #define USER_SETTING_INT_STR_LEN 8
 
 /*************************  Serial Config *******************************/
@@ -24,10 +28,18 @@
 // If the BLE adaptor header is empty, webconfig should be used to
 // disble flow control.  Probably do not need to change it here
 // until a new version of DAYBREAK (beyond Mk3b) is released.
-char userSettingStr_bleFlowControl[USER_SETTING_INT_STR_LEN] = "1";
+#define DEFAULT_BLE_FLOW_CONTROL "1"
+
+#ifndef SKIP_GLOBAL_EXTERNS
+extern char *userSettingStr_bleFlowControl; 
+#endif // SKIP_GLOBAL_EXTERNS
 
 /*************************  TCP Config *******************************/
-char userSettingStr_tcpPort[USER_SETTING_INT_STR_LEN] = "9090";
+#define DEFAULT_TCP_PORT "9090"
+
+#ifndef SKIP_GLOBAL_EXTERNS
+extern char *userSettingStr_tcpPort;
+#endif // SKIP_GLOBAL_EXTERNS
 
 /*************************  WebConfig Config *******************************/
 #define WIFI_DEFAULT_PASSWORD "decentDE1"

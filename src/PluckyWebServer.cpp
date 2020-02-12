@@ -5,7 +5,7 @@
 #include "PluckyWebServer.hpp"
 extern PluckyWebServer webServer;
 
-PluckyWebServer::PluckyWebServer(int port=80) {
+PluckyWebServer::PluckyWebServer(int port) {
   _ws = new WebServer(port);
   _webConfig = new PluckyWebConfig(_ws);
 }

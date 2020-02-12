@@ -3,10 +3,10 @@
 
 #include <WebServer.h>
 #include <SPIFFS.h>
-
 #include <IotWebConfCompatibility.h> 
 
-// IotWebConf for configuration portal
+class PluckyWebServer;
+
 #include "PluckyWebConfig.hpp"
 
 class PluckyWebServer {

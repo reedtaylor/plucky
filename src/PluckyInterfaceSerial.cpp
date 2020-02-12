@@ -68,9 +68,11 @@ bool PluckyInterfaceSerial::available() {
 }
 
 bool PluckyInterfaceSerial::readAll() {
+    bool didRead = false;
     while (_serial->available() && _readBufIndex < READ_BUFFER_SIZE) {
         _readBuf[_readBufIndex] = _serial->read();
         _readBufIndex++;
+        didRead = true;
         if (_readBuf[_readBufIndex - 1] == '\n') { 
             uint16_t sendLen = _readBufIndex;
             _readBufIndex = 0;
@@ -99,13 +101,15 @@ bool PluckyInterfaceSerial::readAll() {
         Logger.debug.println();
         _readBufIndex = 0;
     }
+    return didRead;
 }   
 
-bool PluckyInterfaceSerial::availableForWrite(size_t len=0) {
-    return _serial->availableForWrite();
+bool PluckyInterfaceSerial::availableForWrite(size_t len) {
+    return (_serial->availableForWrite() > len);
 }
 
 bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size) {
+    bool didWrite = false;
     if (_serial->availableForWrite() > size) {
         // This if statement is used to prevent blocking in a case where (e.g. HW flow control) is causing
         // a UART to overflow its buffers.  The behavior is to drop writes and log warnings.  
@@ -124,7 +128,9 @@ bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size) {
         //  - and CTSB is not grounded 
         //  - and BLE UART flow control is enabled.
         _serial->write(_readBuf, size);
+        didWrite = true;
     } else {
-        Logger.warning.printf("WARNING: %s send buffer full", _interfaceName);
+        Logger.warning.printf("WARNING: Interface %s send buffer full", _interfaceName);
     }
+    return didWrite;
 }

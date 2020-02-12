@@ -28,7 +28,7 @@ protected:
         // but also log a complaint about it
         buf[len-2] = '\n';
         len = len-1;
-        Logger.warning.printf("Stripped CRLF from interface %s"), _interfaceName;
+        Logger.warning.printf("Stripped CRLF from interface %s", _interfaceName);
       }
     }
     if (len < READ_BUFFER_SIZE) {
