@@ -30,16 +30,8 @@
 // until a new version of DAYBREAK (beyond Mk3b) is released.
 #define DEFAULT_BLE_FLOW_CONTROL "1"
 
-#ifndef SKIP_GLOBAL_EXTERNS
-extern char *userSettingStr_bleFlowControl; 
-#endif // SKIP_GLOBAL_EXTERNS
-
 /*************************  TCP Config *******************************/
 #define DEFAULT_TCP_PORT "9090"
-
-#ifndef SKIP_GLOBAL_EXTERNS
-extern char *userSettingStr_tcpPort;
-#endif // SKIP_GLOBAL_EXTERNS
 
 /*************************  WebConfig Config *******************************/
 #define WIFI_DEFAULT_PASSWORD "decentDE1"

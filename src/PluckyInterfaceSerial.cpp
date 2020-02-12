@@ -6,6 +6,9 @@
 #include "PluckyInterfaceGroup.hpp"
 #include "config.hpp"
 
+extern char *userSettingStr_bleFlowControl;
+extern char *userSettingStr_tcpPort;
+
 PluckyInterfaceSerial::PluckyInterfaceSerial(int uart_nr) {
     _uart_nr = uart_nr;
     _readBufIndex = 0;
@@ -46,7 +49,8 @@ void PluckyInterfaceSerial::begin() {
         sprintf(_interfaceName, "Serial_BLE");
         _serial->begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
         gpio_pullup_en((gpio_num_t)SERIAL_BLE_RX_PIN);  // suppress noise if BLE not attached
-
+        
+        Logger.debug.printf("User string = %s", userSettingStr_bleFlowControl);
         if (atoi(userSettingStr_bleFlowControl) == 0) {
             Logger.info.println("BLE HW flow control disabled");
         } else {

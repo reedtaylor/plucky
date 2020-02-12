@@ -3,6 +3,8 @@
 #include "config.hpp"
 
 extern PluckyWebServer webServer;
+extern char *userSettingStr_bleFlowControl;
+extern char *userSettingStr_tcpPort;
 
 PluckyWebConfig::PluckyWebConfig(WebServer *_ws) {
   // Initial name of the board. Used e.g. as SSID of the own Access Point.
@@ -19,7 +21,7 @@ void PluckyWebConfig::doInit() {
   IotWebConfParameter *bleFlowControlParam = new IotWebConfParameter(
     "Enable BLE CTS/RTS Flow Control<br/>(Set to 1 if Decent BLE is installed, 0 in most other situations)", 
     "bleFlowControl", userSettingStr_bleFlowControl, USER_SETTING_INT_STR_LEN, "number", "0 or 1", 
-    NULL, "", true);
+    DEFAULT_BLE_FLOW_CONTROL, "", true);
 
   _iotWebConf->addParameter(separator_BLE);
   _iotWebConf->addParameter(bleFlowControlParam);

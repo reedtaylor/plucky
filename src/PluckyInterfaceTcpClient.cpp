@@ -30,8 +30,10 @@ bool PluckyInterfaceTcpClient::available() {
 }
 
 bool PluckyInterfaceTcpClient::readAll() {
+  bool didRead = false;
   if (_tcpClient.available()) {
     while (_tcpClient.available() && (_readBufIndex < READ_BUFFER_SIZE)) {
+      didRead = true;
       _readBuf[_readBufIndex] = _tcpClient.read();
       _readBufIndex++;
       if (_readBuf[_readBufIndex - 1] == '\n') { 
@@ -48,12 +50,14 @@ bool PluckyInterfaceTcpClient::readAll() {
     }
   }
   if (_readBufIndex >= READ_BUFFER_SIZE) {
+    didRead = false;
     Logger.warning.printf("WARNING: Read Buffer Overrun on interface %s -- purging.\n", _interfaceName);
     Logger.debug.print("    Buffer contents: ");
     Logger.debug.write(_readBuf, READ_BUFFER_SIZE);
     Logger.debug.println();
     _readBufIndex = 0;
   } 
+  return didRead;
 }
 
 
@@ -68,5 +72,5 @@ bool PluckyInterfaceTcpClient::writeAll(const uint8_t *buf, size_t size) {
 void PluckyInterfaceTcpClient::setTcpClient(WiFiClient newClient) {
   _tcpClient = newClient;
   _readBufIndex = 0;
-  sprintf (_interfaceName, "TCP[%s:%d]", _tcpClient.remoteIP().toString()), _tcpClient.remotePort();
+  sprintf (_interfaceName, "TCP[%s:%d]", _tcpClient.remoteIP().toString().c_str()), (int)_tcpClient.remotePort();
 }
