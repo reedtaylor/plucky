@@ -8,6 +8,8 @@
 #include "PluckyInterface.hpp"
 #include "config.hpp"
 
+#define EXTERNAL_DEBUG
+
 #define UART_BAUD 115200
 #define SERIAL_PARAM SERIAL_8N1
 
@@ -18,11 +20,24 @@
 #define SERIAL_DE_TX_PIN 17
 
 #define SERIAL_BLE_UART_NUM UART_NUM_2
-#define SERIAL_BLE_RX_PIN 13  // bummer, mk3b uses the LED pin (13) for RX.  This is because of Feather M0 compatibility.
-#define SERIAL_BLE_TX_PIN 27
+#ifdef EXTERNAL_DEBUG
+ #define SERIAL_BLE_RX_PIN 26
+ #define SERIAL_BLE_TX_PIN 27
+ #define SERIAL_BLE_CTS_PIN 25
+ #define SERIAL_BLE_RTS_PIN 33
+#else // !EXTERNAL_DEBUG
+ #define SERIAL_BLE_RX_PIN 13  // bummer, mk3b uses the LED pin (13) for RX.  This is because of Feather M0 compatibility.
+ #define SERIAL_BLE_TX_PIN 27
+ #define SERIAL_BLE_CTS_PIN 12
+ #define SERIAL_BLE_RTS_PIN 33
+#endif // EXTERNAL_DEBUG
+
 // CTS/RTS pins are not used (at all) if BLE flow control is off
-#define SERIAL_BLE_CTS_PIN 12
-#define SERIAL_BLE_RTS_PIN 33
+#ifdef EXTERNAL_DEBUG
+
+#else // !EXTERNAL_DEBUG
+#endif // EXTERNAL_DEBUG
+
 
 class PluckyInterfaceSerial : public PluckyInterface {
 public:

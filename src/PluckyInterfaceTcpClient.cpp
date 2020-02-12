@@ -72,5 +72,5 @@ bool PluckyInterfaceTcpClient::writeAll(const uint8_t *buf, size_t size) {
 void PluckyInterfaceTcpClient::setTcpClient(WiFiClient newClient) {
   _tcpClient = newClient;
   _readBufIndex = 0;
-  sprintf (_interfaceName, "TCP[%s:%d]", _tcpClient.remoteIP().toString().c_str()), (int)_tcpClient.remotePort();
+  sprintf (_interfaceName, "TCP[%s : %d]", _tcpClient.remoteIP().toString().c_str(), (int)_tcpClient.remotePort());
 }
