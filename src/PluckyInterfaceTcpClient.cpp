@@ -4,9 +4,6 @@
 #include "PluckyInterfaceSerial.hpp"
 #include "config.h"
 
-PluckyInterfaceTcpClient::PluckyInterfaceTcpClient():_readBufIndex(0){
-}
-
 void PluckyInterfaceTcpClient::doInit() {
   _readBufIndex = 0;
   begin();

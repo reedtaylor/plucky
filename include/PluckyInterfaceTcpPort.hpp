@@ -14,6 +14,8 @@ WiFiServer blah();
 class PluckyInterfaceTcpPort : public PluckyInterfaceGroup {
 public:
   PluckyInterfaceTcpPort(uint16_t port);
+  ~PluckyInterfaceTcpPort();
+
   void doLoop();
 
   void begin();

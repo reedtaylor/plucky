@@ -10,6 +10,12 @@ PluckyWebServer::PluckyWebServer(int port) {
   _webConfig = new PluckyWebConfig(_ws);
 }
 
+PluckyWebServer::~PluckyWebServer() {
+  delete _ws;
+  delete _webConfig;
+}
+
+
 String PluckyWebServer::_getContentType(String filename) {
   if (_ws->hasArg("download")) {
     return "application/octet-stream";

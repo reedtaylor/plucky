@@ -17,7 +17,7 @@ public:
   virtual bool writeAll(const uint8_t *buf, size_t size) = 0;
 
 protected:
-  char _interfaceName[32] = "[unknown interface]";
+  char _interfaceName[32];
 
 
   // helper functions 

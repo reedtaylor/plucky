@@ -42,6 +42,9 @@
 class PluckyInterfaceSerial : public PluckyInterface {
 public:
   PluckyInterfaceSerial(int uart_nr);
+  ~PluckyInterfaceSerial();
+
+
   void doInit();
   void doLoop();
 

@@ -26,6 +26,11 @@ PluckyInterfaceSerial::PluckyInterfaceSerial(int uart_nr) {
     }
 }
 
+PluckyInterfaceSerial::~PluckyInterfaceSerial() {
+    if (_uart_nr != SERIAL_USB_UART_NUM) {
+        delete _serial;
+    }
+}
 
 void PluckyInterfaceSerial::doInit() {
     begin();

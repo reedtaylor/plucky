@@ -7,6 +7,10 @@ PluckyInterfaceGroup::PluckyInterfaceGroup(uint8_t numInterfaces) {
     _interfaces = new PluckyInterface *[numInterfaces];
 }
 
+PluckyInterfaceGroup::~PluckyInterfaceGroup() {
+    delete _interfaces;    
+}
+
 void PluckyInterfaceGroup::doInit() {
     for (uint16_t i=0; i<_numInterfaces; i++) {
         _interfaces[i]->doInit();

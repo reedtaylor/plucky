@@ -16,6 +16,7 @@ class PluckyWebConfig;
 class PluckyWebConfig {
 public:
   PluckyWebConfig(WebServer *_ws);
+  ~PluckyWebConfig();
 
   void doInit();
   void doLoop();

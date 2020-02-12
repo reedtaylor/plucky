@@ -15,6 +15,12 @@ PluckyInterfaceTcpPort::PluckyInterfaceTcpPort(uint16_t port) : PluckyInterfaceG
     }
 }
 
+PluckyInterfaceTcpPort::~PluckyInterfaceTcpPort() {
+    for (uint16_t i=0; i<TCP_MAX_CLIENTS; i++) {
+        delete (PluckyInterfaceTcpClient *)(_interfaces[i]);
+    }
+}
+
 void PluckyInterfaceTcpPort::doLoop() {
     if (WiFi.status() != WL_CONNECTED) {
         if (_tcpServer) {

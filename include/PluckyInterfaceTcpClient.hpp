@@ -9,7 +9,11 @@
 
 class PluckyInterfaceTcpClient : public PluckyInterface {
 public:
-  PluckyInterfaceTcpClient();
+  PluckyInterfaceTcpClient() {  
+    _readBufIndex = 0;
+  };
+  ~PluckyInterfaceTcpClient() { };
+
   void doInit();
   void doLoop();
 

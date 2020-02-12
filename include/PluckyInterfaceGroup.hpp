@@ -6,6 +6,8 @@
 class PluckyInterfaceGroup : public PluckyInterface {
 public:
   PluckyInterfaceGroup(uint8_t numInterfaces);
+  ~PluckyInterfaceGroup();
+  
   void doInit();
   void doLoop();
 

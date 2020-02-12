@@ -12,6 +12,7 @@ class PluckyWebServer;
 class PluckyWebServer {
 public:
   PluckyWebServer(int port=80);
+  ~PluckyWebServer();
 
   void doInit();
   void doLoop();

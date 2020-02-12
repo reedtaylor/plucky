@@ -16,6 +16,14 @@ PluckyWebConfig::PluckyWebConfig(WebServer *_ws) {
   _iotWebConf->setupUpdateServer(&_updateServer);
 }
 
+PluckyWebConfig::~PluckyWebConfig() {
+  delete _iotWebConf;
+  // there are a few other stack allocated objects not getting cleaned up
+  // but in reality this is a singleton that never gets deleted so
+  // deferring that fix.
+}
+
+
 void PluckyWebConfig::doInit() {
   IotWebConfSeparator *separator_BLE = new IotWebConfSeparator("BLE Serial Config");
   IotWebConfParameter *bleFlowControlParam = new IotWebConfParameter(
