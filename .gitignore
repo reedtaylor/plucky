@@ -126,7 +126,7 @@ Temporary Items
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
-!.vscode/launch.json
+#!.vscode/launch.json
 !.vscode/extensions.json
 
 ### VisualStudioCode Patch ###
@@ -134,4 +134,3 @@ Temporary Items
 .history
 
 # End of https://www.gitignore.io/api/osx,c++,emacs,platformio,visualstudiocode
-.vscode/launch.json
