@@ -37,9 +37,8 @@ void PluckyInterfaceTcpPort::doLoop() {
         Logger.info.print("New TCP client ");
         for (uint16_t i = 0; i < _numInterfaces; i ++) {
             if (!((PluckyInterfaceTcpClient *)_interfaces[i])->connected()) {
+                Logger.info.printf("in slot: %d\n", i);
                 ((PluckyInterfaceTcpClient *)_interfaces[i])->setTcpClient(_tcpServer.available());
-                Logger.info.printf("in slot: %d", i);
-                Logger.info.println(i);
                 break;
             } else {
                 Logger.info.print(". ");
@@ -83,7 +82,7 @@ bool PluckyInterfaceTcpPort::readAll() {
     bool didRead = false;
     for (uint16_t i=0; i<_numInterfaces; i++) {
         if (_interfaces[i]->available()) {
-            didRead = (didRead || _interfaces[i]->readAll());
+            didRead = (_interfaces[i]->readAll() || didRead);
         }
     }
     return didRead;

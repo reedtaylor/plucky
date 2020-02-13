@@ -49,7 +49,7 @@ bool PluckyInterfaceGroup::readAll() {
     bool didRead = false;
     for (uint16_t i=0; i<_numInterfaces; i++) {
         if (_interfaces[i]->available()) {
-            didRead = (didRead || _interfaces[i]->readAll());
+            didRead = (_interfaces[i]->readAll() || didRead);
         }
     }
     return didRead;
@@ -71,7 +71,7 @@ bool PluckyInterfaceGroup::availableForWrite(size_t len) {
 bool PluckyInterfaceGroup::writeAll(const uint8_t *buf, size_t size) {
     bool didWrite = false;
     for (uint16_t i=0; i<_numInterfaces; i++) {
-        didWrite = (didWrite || _interfaces[i]->writeAll(buf, size));
+        didWrite = (_interfaces[i]->writeAll(buf, size) || didWrite);
     }
     return didWrite;
 }

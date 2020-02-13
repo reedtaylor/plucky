@@ -15,11 +15,14 @@ void PluckyInterfaceTcpClient::doLoop() {
 
 void PluckyInterfaceTcpClient::begin() {
   _readBufIndex = 0;
+  Logger.info.printf("Started interface %s\n", _interfaceName);
 }
 
 void PluckyInterfaceTcpClient::end() {
+  Logger.info.printf("Stopping interface %s\n", _interfaceName);
   _tcpClient.stop();
   _readBufIndex = 0;
+  sprintf(_interfaceName, "TCP [no client]");
 }
 
 bool PluckyInterfaceTcpClient::available() {
@@ -69,5 +72,6 @@ bool PluckyInterfaceTcpClient::writeAll(const uint8_t *buf, size_t size) {
 void PluckyInterfaceTcpClient::setTcpClient(WiFiClient newClient) {
   _tcpClient = newClient;
   _readBufIndex = 0;
-  sprintf (_interfaceName, "TCP[%s : %d]", _tcpClient.remoteIP().toString().c_str(), (int)_tcpClient.remotePort());
+  sprintf (_interfaceName, "TCP[%s : %d]", _tcpClient.remoteIP().toString().c_str(), (int)_tcpClient.remotePort());  
+  begin();
 }

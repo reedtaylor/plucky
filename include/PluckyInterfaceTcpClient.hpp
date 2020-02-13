@@ -11,6 +11,7 @@ class PluckyInterfaceTcpClient : public PluckyInterface {
 public:
   PluckyInterfaceTcpClient() {  
     _readBufIndex = 0;
+    sprintf(_interfaceName, "TCP [no client]");
   };
   ~PluckyInterfaceTcpClient() { };
 

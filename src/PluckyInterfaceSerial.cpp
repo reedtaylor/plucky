@@ -64,6 +64,7 @@ void PluckyInterfaceSerial::begin() {
             gpio_pulldown_en((gpio_num_t)SERIAL_BLE_CTS_PIN);  // this helps but is inconsistent. (not strong enough vs FTDI reset pullup) 
         }
     }
+    Logger.info.printf("Started interface %s\n", _interfaceName);
 }
 
 void PluckyInterfaceSerial::end() {
@@ -135,7 +136,9 @@ bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size) {
         //  - BLE is not installed 
         //  - and CTSB is not grounded 
         //  - and BLE UART flow control is enabled.
-        _serial->write(_readBuf, size);
+        _serial->write(buf, size);
+        //Logger.debug.printf("Interface %s sent message %s\n", _interfaceName, buf);
+
         didWrite = true;
     } else {
         Logger.warning.printf("WARNING: Interface %s send buffer full\n", _interfaceName);

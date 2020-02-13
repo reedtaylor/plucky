@@ -10,7 +10,7 @@ void trimBuffer(uint8_t *buf, uint16_t &len, char *interfaceName) {
       // but also log a complaint about it
       buf[len-2] = '\n';
       len = len-1;
-      Logger.warning.printf("Stripped CRLF from interface %s", interfaceName);
+      Logger.warning.printf("WARNING: Stripped CRLF from interface %s\n", interfaceName);
     }
   }
   if (len < READ_BUFFER_SIZE) {
@@ -20,7 +20,7 @@ void trimBuffer(uint8_t *buf, uint16_t &len, char *interfaceName) {
 
 void debugHandler(uint8_t *buf, uint16_t &len) {
   if (strncmp((char *)buf, "HEAP", 4) == 0) {
-    Logger.debug.printf("Free Heap: %d", esp_get_free_heap_size());
+    Logger.debug.printf("Free Heap: %d\n", esp_get_free_heap_size());
     len=0;
   }
 }

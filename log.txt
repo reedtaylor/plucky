@@ -1,5 +1,0 @@
-PIO Plus (https://pioplus.com) v2.6.1
-Starting Serial Monitor on desire:/dev/ttyUSB0
-tring = 1hi
-User string = 1hi
-User stri
