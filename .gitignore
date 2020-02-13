@@ -134,3 +134,4 @@ Temporary Items
 .history
 
 # End of https://www.gitignore.io/api/osx,c++,emacs,platformio,visualstudiocode
+.vscode/launch.json
