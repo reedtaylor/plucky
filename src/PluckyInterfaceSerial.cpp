@@ -55,7 +55,6 @@ void PluckyInterfaceSerial::begin() {
         _serial->begin(UART_BAUD, SERIAL_PARAM, SERIAL_BLE_RX_PIN, SERIAL_BLE_TX_PIN);
         gpio_pullup_en((gpio_num_t)SERIAL_BLE_RX_PIN);  // suppress noise if BLE not attached
         
-        Logger.debug.printf("User string = %s", userSettingStr_bleFlowControl);
         if (atoi(userSettingStr_bleFlowControl) == 0) {
             Logger.info.println("BLE HW flow control disabled");
         } else {
@@ -139,7 +138,7 @@ bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size) {
         _serial->write(_readBuf, size);
         didWrite = true;
     } else {
-        Logger.warning.printf("WARNING: Interface %s send buffer full", _interfaceName);
+        Logger.warning.printf("WARNING: Interface %s send buffer full\n", _interfaceName);
     }
     return didWrite;
 }

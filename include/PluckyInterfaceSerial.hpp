@@ -8,7 +8,7 @@
 #include "PluckyInterface.hpp"
 #include "config.hpp"
 
-#define EXTERNAL_DEBUG
+//#define EXTERNAL_DEBUG
 
 #define UART_BAUD 115200
 #define SERIAL_PARAM SERIAL_8N1

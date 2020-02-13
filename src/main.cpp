@@ -35,10 +35,12 @@ void setup() {
   if(!SPIFFS.begin(true)){
       Logger.error.println("An Error has occurred while mounting SPIFFS");
   }
-
   controllers[0] = new PluckyInterfaceSerial(SERIAL_USB_UART_NUM);
   controllers[1] = new PluckyInterfaceSerial(SERIAL_BLE_UART_NUM);
   controllers[2] = new PluckyInterfaceTcpPort(atoi(userSettingStr_tcpPort));
+
+  de1Serial.doInit();
+
   controllers.doInit();
 
   webServer.doInit();

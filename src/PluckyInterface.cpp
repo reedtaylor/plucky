@@ -19,7 +19,7 @@ void trimBuffer(uint8_t *buf, uint16_t &len, char *interfaceName) {
 }
 
 void debugHandler(uint8_t *buf, uint16_t &len) {
-  if (strncmp((char *)buf, "HEAP", 4)) {
+  if (strncmp((char *)buf, "HEAP", 4) == 0) {
     Logger.debug.printf("Free Heap: %d", esp_get_free_heap_size());
     len=0;
   }
