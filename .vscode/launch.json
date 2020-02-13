@@ -12,8 +12,8 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "/Users/reed/Documents/PlatformIO/Projects/plucky/.pio/build/featheresp32/firmware.elf",
-            "toolchainBinDir": "/Users/reed/.platformio/packages/toolchain-xtensa32/bin",
+            "executable": "/Users/taylorsaurus/Documents/plucky/.pio/build/featheresp32/firmware.elf",
+            "toolchainBinDir": "/Users/taylorsaurus/.platformio/packages/toolchain-xtensa32/bin",
             "preLaunchTask": {
                 "type": "PlatformIO",
                 "task": "Pre-Debug"
@@ -24,8 +24,8 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "/Users/reed/Documents/PlatformIO/Projects/plucky/.pio/build/featheresp32/firmware.elf",
-            "toolchainBinDir": "/Users/reed/.platformio/packages/toolchain-xtensa32/bin",
+            "executable": "/Users/taylorsaurus/Documents/plucky/.pio/build/featheresp32/firmware.elf",
+            "toolchainBinDir": "/Users/taylorsaurus/.platformio/packages/toolchain-xtensa32/bin",
             "internalConsoleOptions": "openOnSessionStart"
         }
     ]
