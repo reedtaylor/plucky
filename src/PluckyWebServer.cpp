@@ -3,6 +3,8 @@
 #include <WebServer.h>
 
 #include "PluckyWebServer.hpp"
+#include "PluckyInterfaceSerial.hpp"
+
 extern PluckyWebServer webServer;
 
 PluckyWebServer::PluckyWebServer(int port) {
@@ -79,8 +81,11 @@ bool PluckyWebServer::_handleFileRead(String path) {
 void PluckyWebServer::doInit() {
   _webConfig->doInit();
 
-  // URL handler for webconfig
+  // URL handlers for specific patterns
   _ws->on("/config", PluckyWebConfig::handleConfig_CB);
+  _ws->on("/de1/wake", PluckyWebServer::handleWake_CB);
+  _ws->on("/de1/sleep", PluckyWebServer::handleSleep_CB);
+
 
   // URL Handler for everything else
   // - If the request matches a path/file in SPIFFS, that will get served
@@ -88,6 +93,24 @@ void PluckyWebServer::doInit() {
   //   situations and not-404 on those.  But 404 otherwise.  
   _ws->onNotFound(PluckyWebServer::handleNotFound_CB);
 }
+
+extern PluckyInterfaceSerial de1Serial;
+void PluckyWebServer::handleWake_CB() {
+  Logger.info.print("Web initiated wake\n");
+  de1Serial.writeAll((uint8_t *)"<B>02\n", 7);
+  webServer._ws->sendHeader("Location", "/command.htm");
+  webServer._ws->send(302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
+  webServer._ws->client().stop(); // Stop is needed because we sent no content length
+}
+
+void PluckyWebServer::handleSleep_CB() {
+  Logger.info.print("Web initiated sleep\n");
+  de1Serial.writeAll((uint8_t *)"<B>00\n", 7);
+  webServer._ws->sendHeader("Location", "/command.htm");
+  webServer._ws->send(302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
+  webServer._ws->client().stop(); // Stop is needed because we sent no content length
+}
+
 
 void PluckyWebServer::doLoop() {
   _webConfig->doLoop();
