@@ -25,10 +25,16 @@ PluckyInterfaceSerial de1Serial(SERIAL_DE_UART_NUM);
 PluckyInterfaceGroup controllers(NUM_CONTROLLERS);
 
 void setup() {
+  Logger.addHandler(Logger.DEBUG, Serial);
+
   userSettingStr_bleFlowControl = new char[USER_SETTING_INT_STR_LEN];
   userSettingStr_tcpPort = new char[USER_SETTING_INT_STR_LEN];
   sprintf(userSettingStr_bleFlowControl, DEFAULT_BLE_FLOW_CONTROL);
   sprintf(userSettingStr_tcpPort, DEFAULT_TCP_PORT);
+
+  if(!SPIFFS.begin(true)){
+      Logger.error.println("An Error has occurred while mounting SPIFFS");
+  }
 
   controllers[0] = new PluckyInterfaceSerial(SERIAL_USB_UART_NUM);
   controllers[1] = new PluckyInterfaceSerial(SERIAL_BLE_UART_NUM);
@@ -41,7 +47,6 @@ void setup() {
 }
 
 void loop() {
-  Logger.debug.printf("User string = %s\n", userSettingStr_bleFlowControl);
   webServer.doLoop();
   de1Serial.doLoop();
   controllers.doLoop();

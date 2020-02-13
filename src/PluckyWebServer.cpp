@@ -86,7 +86,7 @@ void PluckyWebServer::doInit() {
   // - If the request matches a path/file in SPIFFS, that will get served
   // - Else pass it along to the webconfig so that it can check for captive portal
   //   situations and not-404 on those.  But 404 otherwise.  
-  _ws->onNotFound(handleNotFound_CB);
+  _ws->onNotFound(PluckyWebServer::handleNotFound_CB);
 }
 
 void PluckyWebServer::doLoop() {
