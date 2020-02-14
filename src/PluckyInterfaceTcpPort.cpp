@@ -106,7 +106,7 @@ bool PluckyInterfaceTcpPort::availableForWrite(size_t len) {
 bool PluckyInterfaceTcpPort::writeAll(const uint8_t *buf, size_t size) {
     bool didWrite = false;
     for (uint16_t i=0; i<_numInterfaces; i++) {
-        didWrite = (didWrite || _interfaces[i]->writeAll(buf, size));
+        didWrite = (_interfaces[i]->writeAll(buf, size) || didWrite);
     }
     return didWrite;
 }
