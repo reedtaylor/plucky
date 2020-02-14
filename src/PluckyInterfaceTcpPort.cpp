@@ -17,7 +17,9 @@ PluckyInterfaceTcpPort::PluckyInterfaceTcpPort(uint16_t port) : PluckyInterfaceG
 
 PluckyInterfaceTcpPort::~PluckyInterfaceTcpPort() {
     for (uint16_t i=0; i<TCP_MAX_CLIENTS; i++) {
-        delete (PluckyInterfaceTcpClient *)(_interfaces[i]);
+// This should technically get deleted but since this is in effect a singletion class,
+// commenting it out as it makes the compliler mildly grumpy (polymorphic destructor)
+//        delete (PluckyInterfaceTcpClient *)(_interfaces[i]);
     }
 }
 

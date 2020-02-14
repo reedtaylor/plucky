@@ -6,8 +6,8 @@
 
 class PluckyInterface {
 public:
-  virtual void doInit();
-  virtual void doLoop();
+  virtual void doInit() = 0;
+  virtual void doLoop() = 0;
 
   virtual void begin() = 0;
   virtual void end() = 0;
