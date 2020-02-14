@@ -25,7 +25,7 @@ PluckyInterfaceSerial de1Serial(SERIAL_DE_UART_NUM);
 PluckyInterfaceGroup controllers(NUM_CONTROLLERS);
 
 void setup() {
-  Logger.addHandler(Logger.DEBUG, Serial);
+  Logger.addHandler(Logger.INFO, Serial);
 
   userSettingStr_bleFlowControl = new char[USER_SETTING_INT_STR_LEN];
   userSettingStr_tcpPort = new char[USER_SETTING_INT_STR_LEN];
