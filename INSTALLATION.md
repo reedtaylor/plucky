@@ -14,10 +14,10 @@ It's very easy to install DAYBREAK into the back of your DE1!  It does not requi
 
 There are roughly four steps:
 
-1. Remove 4 screws and a decorative lifty-knob
-2. Carefully unplug and replug a small circuit board located on the back of the machine
-3. (optional)  Attempt to perform step 4 below several times, whilst trying to awkwardly hold a short cable taut, but not TOO taut, wishing all the while that you had either a person helping you, or a third hand
-4. Replace 4 screws and a decorative lifty-knob
+ * Removing 4 screws and a decorative lifty-knob
+ * Carefully unplugging and replugging a small circuit board located on the back of the machine
+ * (optional)  Attempting to perform step 9 below several times without a helper, which involves using one hand to awkwardly hold a short cable taut (but not TOO taut), one hand to maneuver the back panel of the machine into place, and a third hand to tighten a screw
+ * Replacing the 4 screws and lifty-knob
 
 When you are done, your machine will continue to work exactly as it always has.  The tablet will work as usual, and you won't even be able to DAYBREAK is there at all.  Your DE1 will simply have some new capabilities.
 
@@ -48,7 +48,7 @@ Before starting, you should have the following things on hand:
 
    <img src="https://user-images.githubusercontent.com/8826853/74623374-5ffe8b80-5112-11ea-90a6-6dafdc8e0046.png" width=200>
 
-4. Use the Torx T10 wrench to release the remaining 3 screws on the back of the machine.  NOTE:  These do NOT need to be unscrewed fully from the decorative plastic cover, only enough to release the cover from the metal chassis, as shown.  (Installation will be easier if you leave these three screws engaged with the plastic cover rather than removing them fully.)
+4. Use the Torx T10 wrench to release the remaining 3 screws on the back of the machine.  NOTE:  These do NOT need to be unscrewed fully from the decorative plastic cover, only enough to release the cover from the metal chassis, as shown.  (Installation may be easier if you leave these three screws engaged with the plastic cover rather than removing them fully.)
 
    <img src="https://user-images.githubusercontent.com/8826853/74623440-a7851780-5112-11ea-8237-7953316de078.png" width=200> <img src="https://user-images.githubusercontent.com/8826853/74623264-f4b4b980-5111-11ea-8239-7b8c09adebb1.png" width=200>
 
@@ -59,7 +59,8 @@ Before starting, you should have the following things on hand:
 6. In this step we will remove the Decent BLE adaptor, which is the small printed circuit board (PCB) made accessible through an aperture in the metal chassis.  Yours may look slightly different, but the shape will be the same.
 
    __We will exercise significant care in this step, to avoid damaging this PCB while removing it.__  Primarily, there are two things to be VERY careful about when removing this PCB: 
-   * We don't want to break any components off the surface of the PCB.  A few components are located very close to the edges, and could be easily damaged if we "slip" while trying to pull the PCB out.  __We will be careful to orient our tools so as to minimize the chances of damage, even if our tool "slips".__
+
+   * We don't want to break any components off the surface of the PCB.  A few components are located very close to the edges, and could easily be damaged if we "slip" while trying to pull out the PCB.  __We will be careful to orient our tools so as to minimize the chances of damage, even if our tool "slips".__
 
     <img src="https://user-images.githubusercontent.com/8826853/74624161-62161980-5115-11ea-8bf2-1a808e9b0ca8.png" width=200>
 
@@ -78,21 +79,21 @@ Before starting, you should have the following things on hand:
 
     <img src="https://user-images.githubusercontent.com/8826853/74625192-7c51f680-5119-11ea-8b61-61ecd98dca43.png" width=200>
 
-    In this step we wil be replacing the board we just removed, with its DAYBREAK counterpart.  You may wish to place the DAYBREAK assembly on top of the DE1 during this step.
+    In this step we wil be replacing the board we just removed, with its DAYBREAK counterpart.  You may wish to place the DAYBREAK housing on top of the DE1 during this step.
     
     <img src="https://user-images.githubusercontent.com/8826853/74625493-87f1ed00-511a-11ea-91fb-b930b45b2f8f.png" width=200>
 
-    The only thing making this step tricky is the fact that, like the BLE Adaptor, the DAYBREAK board has 8 pins, while the headers on the DE1 have only 6.  It is very important to align these correctly: __The top 6 DAYBREAK should will engage with the DE1, and the bottom two should be visibly not-connected.__
+    The only thing tricky about this step is the fact that, like the BLE Adaptor, the DAYBREAK board has 8 pins, while the headers on the DE1 have only 6.  It is important to align these correctly: __The top 6 DAYBREAK pins will engage with the DE1, and the bottom two DAYBREAK pins be visibly not-connected.__
     
     <img src="https://user-images.githubusercontent.com/8826853/74626001-42362400-511c-11ea-9241-3c62cde6a8cf.png" width=300>
 
-8. Now, assuming that you want to keep using the Decent BLE adaptor (so that your tablet keeps working), we will install that adaptor in its new home on DAYBREAK.  Note that on this board all 8 pins will be inserted, and the Decent logo should be toward the nearby edge of the case.
+8. Now, assuming that you want to keep using the Decent BLE adaptor (so that your tablet keeps working), we will install that adaptor into its new home, on DAYBREAK.  Note that on DAYBREAK all 8 pins will be inserted, and the Decent logo should be toward the nearby edge of the case.
 
     <img src="https://user-images.githubusercontent.com/8826853/74626706-6d217780-511e-11ea-95ea-1fdf9cfe4ce9.png" width=200>  <img src="https://user-images.githubusercontent.com/8826853/74626653-46634100-511e-11ea-85bf-0d691dddf6df.png" width=300>  
 
-9. In this step we will begin reattaching the back panel.  
+9. In this step we will begin re-attaching the back panel.  
 
-   In order to keep the wiring neat, and to work within the limited length of our Picoblade ribbon cable, this step requires us to maintain a TINY bit of tension on the picoblade wires while.  
+   In order to keep the wiring neat, and to work within the limited length of our Picoblade ribbon cable, this step requires us to maintain a TINY bit of tension on the picoblade wires while maneuvering the back panel.  
 
    Note: __This step is VERY easy if you have a helper to lend a hand__, but can certainly be done alone as well.  (The images will assume you are working alone.)
 
@@ -116,11 +117,12 @@ Before starting, you should have the following things on hand:
     
     Then, secure the DAYBREAK housing at the top-right of the back panel, using the (fully removed) screw.  
 
-    Finally, secure all remaining screws.  Ensure these screws are engaging with the metal chassis and not just "pushing out" the plastic panel as you tighten them.  Also, be careful not to over-tighten these screws as this could crack the plastic.  Also, t
+    Finally, secure all remaining screws.  Ensure these screws are engaging with the metal chassis and not just "pushing out" the plastic panel as you tighten them.  Also, be careful not to over-tighten these screws as this could crack the plastic.
    
    <img src="https://user-images.githubusercontent.com/8826853/74627996-7280c100-5122-11ea-8a62-e032479a1727.png" width=200>
 
 11. Finish up!
+
 
     Reinstall the reservoir lifter tube knob.  Note, you may need to lift this tube from below, as the assembly drops a bit lower with the knob removed.
 
@@ -143,7 +145,7 @@ Before starting, you should have the following things on hand:
      4.  Wait 10 seconds
      5.  Restore power to DAYBREAK (plug in)
 
-This avoids a rare but known condition where the DE1 can become confused during its power-up sequence by unexpected voltages coming from a powered-up DAYBREAK, causing a hang-up during initialization.  
+This avoids a rare but known condition where the DE1 can get confused during its power-up sequence by unexpected voltages coming from a partially-powered-up device, leading to a hang-up during initialization.  
 
 Making sure the DE1 is the first device to receive power avoids this issue;  It usually doesn't seem to happen.
 
