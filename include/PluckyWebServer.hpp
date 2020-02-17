@@ -21,6 +21,7 @@ public:
   static void handleNotFound_CB();
   static void handleWake_CB();
   static void handleSleep_CB();
+  static void handleSleep_CB();
 
 protected:
   WebServer *_ws;
