@@ -1,3 +1,4 @@
+by Reed 2020-02-20
 
 # Instaling Plucky / DAYBREAK
 
@@ -37,7 +38,7 @@ There are roughly four steps:
  * (optional)  Attempting to perform step 9 below several times without a helper, which involves using one hand to awkwardly hold a short cable taut (but not TOO taut), one hand to maneuver the back panel of the machine into place, and a third hand to tighten a screw
  * Replacing the 4 screws and lifty-knob
 
-When you are done, your machine will continue to work exactly as it always has.  The tablet will work as usual, and you won't even be able to DAYBREAK is there at all.  Your DE1 will simply have some new capabilities.
+When you are done, your machine will continue to work exactly as it always has.  The tablet will work as usual, and you won't even be able to tell DAYBREAK is there at all.  Your DE1 will simply have some new capabilities.
 
 # What you'll need
 
