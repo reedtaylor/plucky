@@ -96,6 +96,9 @@ void PluckyWebServer::doInit() {
 
 extern PluckyInterfaceSerial de1Serial;
 void PluckyWebServer::handleWake_CB() {
+  // This is a sad little proof of concept hack.   This should not be an HTTP GET
+  // and the 302 is a lame workaround for that fact.  But - whatever, it demonstrates a 
+  // web-initiated action on the machine.  Will be replaced with a proper API of some form
   Logger.info.print("Web initiated wake\n");
   de1Serial.writeAll((uint8_t *)"<B>02\n", 7);
   webServer._ws->sendHeader("Location", "/command.htm");
@@ -104,6 +107,9 @@ void PluckyWebServer::handleWake_CB() {
 }
 
 void PluckyWebServer::handleSleep_CB() {
+  // This is a sad little proof of concept hack.   This should not be an HTTP GET
+  // and the 302 is a lame workaround for that fact.  But - whatever, it demonstrates a 
+  // web-initiated action on the machine.  Will be replaced with a proper API of some form
   Logger.info.print("Web initiated sleep\n");
   de1Serial.writeAll((uint8_t *)"<B>00\n", 7);
   webServer._ws->sendHeader("Location", "/command.htm");
