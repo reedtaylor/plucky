@@ -17,6 +17,9 @@
 
 #define USER_SETTING_INT_STR_LEN 8
 
+/***********************  General Config *******************/
+#define DEFAULT_PROMISCUOUS "0"
+
 /*************************  Serial Config *******************************/
 
 // 1 = enable flow control by default [recommended]
@@ -43,10 +46,11 @@
 
 /*************************  Developer Config *******************************/
 
+// This should be sized no smaller than the longest possible message, plus room for
+// a null-terminator. 
 // Largest possible BLE message is ~20 bytes (packed binary)
-// 64 bytes of ascii hex.  Doubling that just because it doesn't amount to much.
-// Largest possible DE1 serial message therefore <64 bytes of ascii (representing 32 bytes packed) 
-// Not tight on memory at the moment.
+// Allowing for several extra chars (e.g. "[M]", we can generously that 64 bytes of ascii hex.  
+// Then let's just double that, as it doesn't amount to much and we are not tight on memory at the moment.  
 #define READ_BUFFER_SIZE 128
 
 // When this changes, the config portal forces a reconfig

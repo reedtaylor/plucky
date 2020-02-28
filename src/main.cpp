@@ -9,6 +9,7 @@
 #include "config.hpp"
 char *userSettingStr_bleFlowControl;
 char *userSettingStr_tcpPort;
+char *userSettingStr_promiscuous;
 
 // Web Server using SPIFFS and IotWebConfig
 PluckyWebServer webServer;
@@ -29,8 +30,10 @@ void setup() {
 
   userSettingStr_bleFlowControl = new char[USER_SETTING_INT_STR_LEN];
   userSettingStr_tcpPort = new char[USER_SETTING_INT_STR_LEN];
+  userSettingStr_promiscuous = new char[USER_SETTING_INT_STR_LEN];
   sprintf(userSettingStr_bleFlowControl, DEFAULT_BLE_FLOW_CONTROL);
   sprintf(userSettingStr_tcpPort, DEFAULT_TCP_PORT);
+  sprintf(userSettingStr_promiscuous, DEFAULT_PROMISCUOUS);
 
   if(!SPIFFS.begin(true)){
       Logger.error.println("An Error has occurred while mounting SPIFFS");
