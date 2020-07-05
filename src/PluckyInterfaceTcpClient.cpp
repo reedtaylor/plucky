@@ -46,6 +46,16 @@ bool PluckyInterfaceTcpClient::readAll() {
         // Send to DE
         extern PluckyInterfaceSerial de1Serial;
         de1Serial.writeAll(_readBuf, sendLen);
+
+        // Broadcast to all interfaces if promiscuous usersetting is 1
+        // Note we assume that _readBuf is newline- and null-terminated, accomplished by trimBuffer
+        extern char *userSettingStr_promiscuous;
+        if (atoi(userSettingStr_promiscuous) == 1) {
+            char broadcastMessage[READ_BUFFER_SIZE+strlen(_interfaceName)+4];
+            sprintf(broadcastMessage, "{%s} %s", _interfaceName, (char *)_readBuf);
+            extern PluckyInterfaceGroup controllers;
+            controllers.writeAll((uint8_t *)broadcastMessage, strlen(broadcastMessage));
+        }
       }
     }
   }
