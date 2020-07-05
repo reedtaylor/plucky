@@ -2,6 +2,7 @@
 
 #include "PluckyInterfaceTcpClient.hpp"
 #include "PluckyInterfaceSerial.hpp"
+#include "PluckyInterfaceGroup.hpp"
 #include "config.h"
 
 void PluckyInterfaceTcpClient::doInit() {
