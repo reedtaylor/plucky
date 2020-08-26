@@ -9,6 +9,8 @@
 extern char *userSettingStr_bleFlowControl;
 extern char *userSettingStr_tcpPort;
 
+extern bool de1Initialized;
+
 PluckyInterfaceSerial::PluckyInterfaceSerial(int uart_nr) {
     _uart_nr = uart_nr;
     _readBufIndex = 0;
@@ -86,8 +88,18 @@ bool PluckyInterfaceSerial::readAll() {
             uint16_t sendLen = _readBufIndex;
             _readBufIndex = 0;
 
+            // received an LF terminator, meaning this message can be dispatched
+            // first, perform some cleanup and handling of the LF terminated string
             trimBuffer(_readBuf, sendLen, _interfaceName);
             debugHandler(_readBuf, sendLen);
+#if ENABLE_BLE_P05_WORKAROUND
+            // workaround for missing Mk3b wires for P05 secondary flow control.  see config.hpp  for details
+            if (strncmp((char *)_readBuf, "{F}00000001", 11) == 0) {
+                sendLen = 0;
+                Logger.info.printf("Dropped message enabling (unsupported) P05 BLE flow control from interface %s.\n", _interfaceName);
+                de1Initialized = false;
+            }
+#endif // ENABLE_BLE_P05_WORKAROUND
 
             if (_uart_nr == SERIAL_DE_UART_NUM) {
                 // Broadcast to all interfaces
@@ -152,7 +164,7 @@ bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size) {
 
         didWrite = true;
     } else {
-        Logger.warning.printf("WARNING: Interface %s send buffer full\n", _interfaceName);
+        Logger.warning.printf("WARNING: Interface %s send buffer full (size %d > available %d\n", _interfaceName, size, _serial->availableForWrite());
     }
     return didWrite;
 }

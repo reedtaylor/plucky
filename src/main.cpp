@@ -25,6 +25,8 @@ PluckyInterfaceSerial de1Serial(SERIAL_DE_UART_NUM);
 #define NUM_CONTROLLERS 3
 PluckyInterfaceGroup controllers(NUM_CONTROLLERS);
 
+bool de1Initialized = false;
+
 void setup() {
   Logger.addHandler(Logger.INFO, Serial);
 
@@ -55,4 +57,13 @@ void loop() {
   webServer.doLoop();
   de1Serial.doLoop();
   controllers.doLoop();
+
+  if (!de1Initialized) {
+#if ENABLE_REMOTE_OOB
+      de1Serial.writeAll((uint8_t *)"[E]00000001\n", 12);
+      Logger.info.println("Remote Control enabled via factory command.");
+#endif //  ENABLE_REMOTE_OOB
+  de1Initialized = true;
+  Logger.info.println("DE1 (re-)initialized.");
+  }
 }

@@ -4,10 +4,10 @@
 
 // Config values are set via defines here.  
 
-// There are some  global variables defined(extern) in this file with the prefix "userSettingStr_".
-// These string variables are being assigned DEFAULT values here (via the defines).  
+// There are some  global variables defined with the prefix "userSettingStr_".
+// These string variables are being assigned DEFAULT values defined here, when they are declared.  
 // These values  can/will get overridden if the user changes them via WebConfig.
-//  - To change the defaults, edit the #defines
+//  - To change the defaults, edit the #defines in this file
 //  - To use the values, read the global strings 
 //  
 // Doing it this way has the nice property of both working via the webconfig UI but also
@@ -52,6 +52,38 @@
 // Allowing for several extra chars (e.g. "[M]", we can generously that 64 bytes of ascii hex.  
 // Then let's just double that, as it doesn't amount to much and we are not tight on memory at the moment.  
 #define READ_BUFFER_SIZE 128
+
+/*************************  BLE P05 Handshake Workaround  *******************************/
+// The OOB message {F}00000001 is sent from the BLE adaptor to the DE1 
+// during connection startup, which enables a secondary flow control mechanism between the 
+// DE1 and BLE adaptor via pin P05.  
+// 
+// This was added to the DE1/BLE firmware around Jul 13 2020 as a means to improve BLE reliability.
+// 
+// Ray H. from Decent explains:
+// | The nRF51822 CPU used in the BLE module has a fundamental flaw in that the UART only has a 1-byte 
+// | FIFO, and DMA to the UART is broken.
+// |  
+// | This was causing lost data
+// | 
+// | So, I manually pulled PO5 high when it is possible that the BLE module might be busy
+//
+// DAYBREAK Mk3b predated this change, and P05 was not connected on either end of the
+// picoblade.  This results in a lockup as the DE1 believes the BLE adaptor to be busy.
+// 
+// The long term fix will be to maintain or propagate the P05 signal between DE1 in a future
+// hardwae revision.  Or perhaps to emulate it, but presently there's no trace from the Feather
+// to BLE P05 so would still require jumpering.
+// 
+// As a short term workaround we can either pull-down the pin on the DE1 adaptor board, or
+// simply discard the OOB message {F}00000001 on its way from BLE to DE1.  We do the latter here.
+// This has the unfortunate side effect of suppressing Ray's fix for the BLE lost data issue. 
+// But ... every owner lived with that issue for more than two years so it's not terribly severe.
+#define ENABLE_BLE_P05_WORKAROUND 1
+
+// An OOB message can be sent to the DE1 to enable remote control.
+// This is not a configuration supported by Decent and pay pose safety hazards.
+#define ENABLE_REMOTE_OOB 1
 
 // When this changes, the config portal forces a reconfig
 #define CONFIG_VERSION "plucky-0.04"
