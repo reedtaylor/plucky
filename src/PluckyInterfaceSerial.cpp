@@ -9,6 +9,8 @@
 extern char *userSettingStr_bleFlowControl;
 extern char *userSettingStr_tcpPort;
 
+extern bool de1Initialized;
+
 PluckyInterfaceSerial::PluckyInterfaceSerial(int uart_nr) {
     _uart_nr = uart_nr;
     _readBufIndex = 0;
@@ -86,17 +88,38 @@ bool PluckyInterfaceSerial::readAll() {
             uint16_t sendLen = _readBufIndex;
             _readBufIndex = 0;
 
+            // received an LF terminator, meaning this message can be dispatched
+            // first, perform some cleanup and handling of the LF terminated string
             trimBuffer(_readBuf, sendLen, _interfaceName);
             debugHandler(_readBuf, sendLen);
+#if ENABLE_BLE_P05_WORKAROUND
+            // workaround for missing Mk3b wires for P05 secondary flow control.  see config.hpp  for details
+            if (strncmp((char *)_readBuf, "{F}00000001", 11) == 0) {
+                sendLen = 0;
+                Logger.info.printf("Dropped message enabling (unsupported) P05 BLE flow control from interface %s.\n", _interfaceName);
+                de1Initialized = false;
+            }
+#endif // ENABLE_BLE_P05_WORKAROUND
 
             if (_uart_nr == SERIAL_DE_UART_NUM) {
-                // Broeacast to all interfaces
+                // Broadcast to all interfaces
                 extern PluckyInterfaceGroup controllers;
                 controllers.writeAll(_readBuf, sendLen);
             } else {
                 // Send to DE
                 extern PluckyInterfaceSerial de1Serial;
                 de1Serial.writeAll(_readBuf, sendLen);
+
+                // Broadcast to all interfaces if promiscuous usersetting is 1
+                // Note we assume that _readBuf is newline- and null-terminated, accomplished by trimBuffer
+                extern char *userSettingStr_promiscuous;
+                if (atoi(userSettingStr_promiscuous) == 1) {
+                    char broadcastMessage[READ_BUFFER_SIZE+strlen(_interfaceName)+4];
+                    sprintf(broadcastMessage, "{%s} %s", _interfaceName, (char *)_readBuf);
+                    extern PluckyInterfaceGroup controllers;
+                    controllers.writeAll((uint8_t *)broadcastMessage, strlen(broadcastMessage));
+                }
+
             }
         }
     }
@@ -141,7 +164,7 @@ bool PluckyInterfaceSerial::writeAll(const uint8_t *buf, size_t size) {
 
         didWrite = true;
     } else {
-        Logger.warning.printf("WARNING: Interface %s send buffer full\n", _interfaceName);
+        Logger.warning.printf("WARNING: Interface %s send buffer full (size %d > available %d\n", _interfaceName, size, _serial->availableForWrite());
     }
     return didWrite;
 }
