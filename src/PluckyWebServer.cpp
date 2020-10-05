@@ -70,6 +70,7 @@ bool PluckyWebServer::_handleFileRead(String path) {
     if (_webPathExists(pathWithGz)) {
       path += ".gz";
     }
+    _ws->sendHeader("Cache-Control", "max-age=604800");   // 7 days
     File file = SPIFFS.open(path, "r");
     _ws->streamFile(file, contentType);
     file.close();
